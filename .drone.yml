@@ -3,8 +3,8 @@ git:
     path: github.com/bjodah/pyneqsys
 script:
   - if [[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then export PYNEQSYS_RELEASE_VERSION=$DRONE_BRANCH; echo ${PYNEQSYS_RELEASE_VERSION} | tail -c +2 > __conda_version__.txt; fi
-  - pip install --user pyodeint pycvodes pygslodeiv2
-  - pip3 install --user pyodeint pycvodes pygslodeiv2
+  - pip install --user -r requirements.txt
+  - pip3 install --user -r requirements.txt
   - ./scripts/run_tests.sh pyneqsys
   - python2 setup.py sdist
   - ./scripts/generate_docs.sh
