@@ -39,20 +39,20 @@ Source distribution is available here:
 
 Example
 -------
-The classic Rosenbrock equation.
+Example from SciPy documentation:
 
 .. code:: python
 
    >>> import sympy as sp
    >>> import numpy as np
    >>> from pyneqsys import SymbolicSys
-   >>> y = sp.symarray('y', 2)
-   >>> f = [y[1], -y[0] + mu*y[1]*(1 - y[0]**2)]
-   >>> neqsys = SymbolicSys(zip(y, f))
-   >>> out = neqsys.solve([1, 0])
-   >>> import matplotlib.pyplot as plt
-   >>> plt.plot(out.residuals?)  # doctest: +SKIP
-
+   >>> x = sp.symarray('x', 2)
+   >>> f = [x[0] + (x[0] - x[1])**3/2 - 1,
+   ...      (x[1] - x[0])**3/2 + x[1]]
+   >>> neqsys = SymbolicSys(x, f)
+   >>> sol = neqsys.solve_scipy([1, 0])
+   >>> print(sol.x)
+   [ 0.8411639  0.1588361]
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyneqsys/master/examples/rosenbrock.png
 

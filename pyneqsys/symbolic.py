@@ -79,7 +79,7 @@ class SymbolicSys(NeqSys):
         return lambda x: cb(*x)
 
     def get_j_callback(self):
-        cb =  self.lambdify(self.x, self.get_jac())
+        cb = self.lambdify(self.x, self.get_jac())
         return lambda x: cb(*x)
 
 
