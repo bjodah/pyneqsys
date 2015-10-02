@@ -32,4 +32,4 @@ def test_neqsys__solve_scipy():
     ns = NeqSys(2, 2, mk_f(3), jac=mk_j(3))
     sol = ns.solve_scipy([0, 0])
     assert abs(sol.x[0] - 0.8411639) < 2e-7
-    assert abs(sol.x[0] - 0.1588361) < 2e-7
+    assert abs(sol.x[1] - 0.1588361) < 2e-7

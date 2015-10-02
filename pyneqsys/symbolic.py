@@ -62,23 +62,25 @@ class SymbolicSys(NeqSys):
 
     def get_jac(self):
         if self._jac is True:
-            if self.lband is None:
-                f = self.Matrix(1, self.ny, lambda _, q: self.exprs[q])
-                return f.jacobian(self.dep)
+            if self.band is None:
+                f = self.Matrix(1, self.nx, lambda _, q: self.exprs[q])
+                return f.jacobian(self.x)
             else:
                 # Banded
                 return self.Matrix(banded_jacobian(
-                    self.exprs, self.dep, *self.band))
+                    self.exprs, self.x, *self.band))
         elif self._jac is False:
             return False
         else:
             return self._jac
 
     def get_f_callback(self):
-        return self.lambdify(self.x, self.exprs)
+        cb = self.lambdify(self.x, self.exprs)
+        return lambda x: cb(*x)
 
     def get_j_callback(self):
-        return self.lambdify(self.x, self.get_jac())
+        cb =  self.lambdify(self.x, self.get_jac())
+        return lambda x: cb(*x)
 
 
 class TransformedSys(SymbolicSys):
