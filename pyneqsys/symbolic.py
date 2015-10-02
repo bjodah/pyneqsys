@@ -7,7 +7,7 @@ from pyodesys.util import banded_jacobian
 
 
 from pyodesys.symbolic import (
-    _lambdify, _Symbol, _symarray, _num_tranformer_factory
+    _lambdify, _Symbol, _symarray, _num_transformer_factory
 )
 
 
@@ -93,7 +93,7 @@ class TransformedSys(SymbolicSys):
             self.fw, self.bw = None, None
         super(TransformedSys, self).__init__(x, exprs, **kwargs)
 
-        self.fw_cb, self.bw_cb = _num_tranformer_factory(self.fw, self.bw, x)
+        self.fw_cb, self.bw_cb = _num_transformer_factory(self.fw, self.bw, x)
         self._pre_processor = self.fw_cb
         self._post_processor = self.back_transform_out
 
