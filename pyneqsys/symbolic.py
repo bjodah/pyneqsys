@@ -2,12 +2,14 @@
 
 from __future__ import absolute_import, division, print_function
 
+from itertools import chain
+
 from .core import NeqSys
-from pyodesys.util import banded_jacobian
+from pyodesys.util import banded_jacobian, check_transforms
 
 
 from pyodesys.symbolic import (
-    _lambdify, _Symbol, _symarray, _num_transformer_factory
+    _lambdify, _symarray, _num_transformer_factory
 )
 
 
@@ -26,6 +28,12 @@ class SymbolicSys(NeqSys):
             user provided expressions for the jacobian
     band: tuple of two ints or None (default)
         number of lower and upper bands in jacobian.
+    lambdify: callback
+        default: sympy.lambdify
+    Matrix: class
+        default: sympy.Matrix
+    \*\*kwargs:
+        default kwargs to ``solve()``
 
     Notes
     -----
@@ -33,10 +41,11 @@ class SymbolicSys(NeqSys):
     an upper limit on number of arguments.
     """
 
-    def __init__(self, x, exprs, jac=True, band=None, lambdify=None,
-                 Matrix=None):
+    def __init__(self, x, exprs, params=(), jac=True, band=None,
+                 lambdify=None, Matrix=None, **kwargs):
         self.x = x
         self.exprs = exprs
+        self.params = params
         self._jac = jac
         self.band = band
         self.lambdify = lambdify or _lambdify
@@ -45,12 +54,17 @@ class SymbolicSys(NeqSys):
             self.Matrix = sympy.ImmutableMatrix
         else:
             self.Matrix = Matrix
+        self.kwargs = kwargs
+
+        self.f_callback = self.get_f_callback()
+        self.j_callback = self.get_j_callback()
 
     @classmethod
-    def from_callback(cls, cb, nx, *args, **kwargs):
+    def from_callback(cls, cb, nx, nparams=0, **kwargs):
         x = _symarray('x', nx)
-        exprs = cb(x)
-        return cls(x, exprs, *args, **kwargs)
+        p = _symarray('p', nparams)
+        exprs = cb(x, *p)
+        return cls(x, exprs, p, **kwargs)
 
     @property
     def nx(self):
@@ -63,7 +77,7 @@ class SymbolicSys(NeqSys):
     def get_jac(self):
         if self._jac is True:
             if self.band is None:
-                f = self.Matrix(1, self.nx, lambda _, q: self.exprs[q])
+                f = self.Matrix(1, self.nf, lambda _, q: self.exprs[q])
                 return f.jacobian(self.x)
             else:
                 # Banded
@@ -75,12 +89,12 @@ class SymbolicSys(NeqSys):
             return self._jac
 
     def get_f_callback(self):
-        cb = self.lambdify(self.x, self.exprs)
-        return lambda x: cb(*x)
+        cb = self.lambdify(list(chain(self.x, self.params)), self.exprs)
+        return lambda x, *args: cb(*chain(x, args))
 
     def get_j_callback(self):
-        cb = self.lambdify(self.x, self.get_jac())
-        return lambda x: cb(*x)
+        cb = self.lambdify(list(chain(self.x, self.params)), self.get_jac())
+        return lambda x, *args: cb(*chain(x, args))
 
 
 class TransformedSys(SymbolicSys):
@@ -88,18 +102,19 @@ class TransformedSys(SymbolicSys):
     def __init__(self, x, exprs, transf=None, **kwargs):
         if transf is not None:
             self.fw, self.bw = zip(*transf)
-            exprs = [e.subs(self.fw) for e in exprs]
+            check_transforms(self.fw, self.bw, x)
+            exprs = [e.subs(zip(x, self.fw)) for e in exprs]
         else:
             self.fw, self.bw = None, None
         super(TransformedSys, self).__init__(x, exprs, **kwargs)
 
         self.fw_cb, self.bw_cb = _num_transformer_factory(self.fw, self.bw, x)
-        self._pre_processor = self.fw_cb
-        self._post_processor = self.back_transform_out
+        self._pre_processor = lambda xarr: self.bw_cb(*xarr)
+        self._post_processor = lambda xarr: self.fw_cb(*xarr)
 
     @classmethod
     def from_callback(cls, cb, nx, transf_cbs=None, **kwargs):
-        x = _Symbol('x', nx)
+        x = _symarray('x', nx)
         exprs = cb(x)
         if transf_cbs is not None:
             try:
@@ -112,6 +127,29 @@ class TransformedSys(SymbolicSys):
             transf = None
         return cls(x, exprs, transf, **kwargs)
 
-    def back_transform_out(self, sol):
-        sol.x[:] = self.bw_cb(sol.x)  # ugly
-        return sol
+
+def linear_part(x, A, b, rref=False, Matrix=None):
+    """
+    returns Ax - b
+
+    x: iterable of symbols
+    A: matrix_like of numbers
+        of shape (len(b), len(x))
+    b: array_like of numbers
+    Matrix: class
+        When ``rref == Ture``: A matrix class which supports slicing,
+        and methods ``dot`` and ``rref``. Defaults to sympy.Matrix
+    rref: bool (default: False)
+        calculate the reduced row echelon form of (A | -b)
+    """
+    if rref:
+        if Matrix is None:
+            from sympy import Matrix
+        aug = Matrix([row + [v] for row, v in zip(A, b)])
+        rA, pivot = aug.rref()
+        nr = len(pivot)
+        return [lhs - rhs for lhs, rhs in zip(
+            rA[:nr, :-1].dot(x), rA[:nr, -1])]
+    else:
+        return [sum([x0*x1 for x0, x1 in zip(row, x)]) - v
+                for row, v in zip(A, b)]

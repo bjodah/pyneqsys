@@ -2,6 +2,9 @@
 
 from __future__ import absolute_import, division, print_function
 
+from itertools import chain
+import warnings
+
 
 class NeqSys(object):
     """
@@ -9,6 +12,8 @@ class NeqSys(object):
     Provides unified interface to:
 
     - scipy.optimize.root
+
+    TODO: add more solvers, e.g. KINSOL.
 
     Parameters
     ----------
@@ -33,8 +38,8 @@ class NeqSys(object):
         if nf < nx:
             raise ValueError("Under-determined system")
         self.nf, self.nx = nf, nx
-        self.get_f_callback = lambda: f
-        self.get_j_callback = lambda: jac
+        self.f_callback = f
+        self.j_callback = jac
         self.band = band
         self.kwargs = kwargs  # default kwargs for integration
 
@@ -58,7 +63,7 @@ class NeqSys(object):
         """
         return getattr(self, 'solve_'+solver)(*args, **kwargs)
 
-    def solve_scipy(self, x0, atol=1e-8, rtol=1e-8, method=None, **kwargs):
+    def solve_scipy(self, x0, params=None, tol=1e-8, method=None, **kwargs):
         """
         Use scipy.optimize.root
         see: http://docs.scipy.org/doc/scipy/reference/
@@ -70,10 +75,8 @@ class NeqSys(object):
             initial guess
         y0: array_like
             Initial values at xout[0] for the dependent variables.
-        atol: float
-            Absolute tolerance
-        rtol: float
-            Relative tolerance
+        tol: float
+            Tolerance
         method: str (default: None)
             what method to use.
 
@@ -82,8 +85,6 @@ class NeqSys(object):
         array of length self.nx
         """
         from scipy.optimize import root
-        f = self.get_f_callback()
-        j = self.get_j_callback()
         if method is None:
             if self.nf > self.nx:
                 method = 'lm'
@@ -93,7 +94,18 @@ class NeqSys(object):
                 raise ValueError('Underdetermined problem')
         if 'band' in kwargs:
             raise ValueError("Set 'band' at initialization instead.")
+        if 'args' in kwargs:
+            raise ValueError("Set 'args' as params in initialization instead.")
+
+        kwargs = dict(chain(self.kwargs.items(), kwargs.items()))
         if self.band is not None:
+            warnings.warn("Band argument ignored (see SciPy docs)")
             kwargs['band'] = self.band
-        out = root(f, x0, jac=j, method=method)
-        return self.post_process(out)
+        if params is not None:
+            kwargs['args'] = params
+
+        sol = root(self.f_callback, self.pre_process(x0),
+                   jac=self.j_callback, method=method, tol=tol,
+                   **kwargs)
+
+        return self.post_process(sol.x), sol

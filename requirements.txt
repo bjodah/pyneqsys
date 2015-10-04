@@ -1,2 +1,2 @@
 scipy
-pyodesys
+git+git://github.com/bjodah/pyodesys.git@master
