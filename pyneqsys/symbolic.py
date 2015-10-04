@@ -63,7 +63,7 @@ class SymbolicSys(NeqSys):
     def get_jac(self):
         if self._jac is True:
             if self.band is None:
-                f = self.Matrix(1, self.nx, lambda _, q: self.exprs[q])
+                f = self.Matrix(1, self.nf, lambda _, q: self.exprs[q])
                 return f.jacobian(self.x)
             else:
                 # Banded
