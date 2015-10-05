@@ -128,7 +128,16 @@ class TransformedSys(SymbolicSys):
         return cls(x, exprs, transf, **kwargs)
 
 
-def linear_part(x, A, b, rref=False, Matrix=None):
+def linear_rref(A, b, Matrix=None):
+    if Matrix is None:
+        from sympy import Matrix
+    aug = Matrix([row + [v] for row, v in zip(A, b)])
+    raug, pivot = aug.rref()
+    nindep = len(pivot)
+    return raug[:nindep, :-1], raug[:nindep, -1]
+
+
+def linear_exprs(x, A, b, rref=False, Matrix=None):
     """
     returns Ax - b
 
@@ -143,13 +152,8 @@ def linear_part(x, A, b, rref=False, Matrix=None):
         calculate the reduced row echelon form of (A | -b)
     """
     if rref:
-        if Matrix is None:
-            from sympy import Matrix
-        aug = Matrix([row + [v] for row, v in zip(A, b)])
-        rA, pivot = aug.rref()
-        nr = len(pivot)
-        return [lhs - rhs for lhs, rhs in zip(
-            rA[:nr, :-1].dot(x), rA[:nr, -1])]
+        rA, rb = linear_rref(A, b, Matrix)
+        return [lhs - rhs for lhs, rhs in zip(rA.dot(x), rb)]
     else:
         return [sum([x0*x1 for x0, x1 in zip(row, x)]) - v
                 for row, v in zip(A, b)]
