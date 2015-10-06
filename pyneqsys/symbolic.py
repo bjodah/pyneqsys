@@ -42,7 +42,8 @@ class SymbolicSys(NeqSys):
     """
 
     def __init__(self, x, exprs, params=(), jac=True, band=None,
-                 lambdify=None, Matrix=None, **kwargs):
+                 lambdify=None, Matrix=None, expand_params=False,
+                 **kwargs):
         self.x = x
         self.exprs = exprs
         self.params = params
@@ -54,16 +55,21 @@ class SymbolicSys(NeqSys):
             self.Matrix = sympy.ImmutableMatrix
         else:
             self.Matrix = Matrix
+        self.expand_params = expand_params
         self.kwargs = kwargs
 
         self.f_callback = self.get_f_callback()
         self.j_callback = self.get_j_callback()
 
     @classmethod
-    def from_callback(cls, cb, nx, nparams=0, **kwargs):
+    def from_callback(cls, cb, nx, nparams=-1, **kwargs):
         x = _symarray('x', nx)
-        p = _symarray('p', nparams)
-        exprs = cb(x, *p)
+        if nparams == -1:
+            p = ()
+            exprs = cb(x)
+        else:
+            p = _symarray('p', nparams)
+            exprs = cb(x, p)
         return cls(x, exprs, p, **kwargs)
 
     @property
@@ -90,11 +96,17 @@ class SymbolicSys(NeqSys):
 
     def get_f_callback(self):
         cb = self.lambdify(list(chain(self.x, self.params)), self.exprs)
-        return lambda x, *args: cb(*chain(x, args))
+
+        def f(x, *args):
+            return cb(*chain(x, args[0] if self.expand_params else args))
+        return f
 
     def get_j_callback(self):
         cb = self.lambdify(list(chain(self.x, self.params)), self.get_jac())
-        return lambda x, *args: cb(*chain(x, args))
+
+        def j(x, *args):
+            return cb(*chain(x, args[0] if self.expand_params else args))
+        return j
 
 
 class TransformedSys(SymbolicSys):
@@ -131,7 +143,7 @@ class TransformedSys(SymbolicSys):
 def linear_rref(A, b, Matrix=None):
     if Matrix is None:
         from sympy import Matrix
-    aug = Matrix([row + [v] for row, v in zip(A, b)])
+    aug = Matrix([list(row) + [v] for row, v in zip(A, b)])
     raug, pivot = aug.rref()
     nindep = len(pivot)
     return raug[:nindep, :-1], raug[:nindep, -1]

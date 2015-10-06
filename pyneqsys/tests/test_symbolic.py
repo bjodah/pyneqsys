@@ -16,7 +16,8 @@ def test_symbolicsys__from_callback():
 
 
 def test_symbolicsys__from_callback__params():
-    def f(x, n):
+    def f(x, args):
+        n = args[0]
         return mk_f(n)(x)
 
     ss = SymbolicSys.from_callback(f, 2, 1)
