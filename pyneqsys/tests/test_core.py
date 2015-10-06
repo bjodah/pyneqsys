@@ -30,6 +30,19 @@ def mk_j(n):
 
 def test_neqsys__solve_scipy():
     ns = NeqSys(2, 2, mk_f(3), jac=mk_j(3))
-    sol = ns.solve_scipy([0, 0])
-    assert abs(sol.x[0] - 0.8411639) < 2e-7
-    assert abs(sol.x[1] - 0.1588361) < 2e-7
+    x, sol = ns.solve_scipy([0, 0])
+    assert abs(x[0] - 0.8411639) < 2e-7
+    assert abs(x[1] - 0.1588361) < 2e-7
+
+
+def test_neqsys_params():
+    def f(x, n):
+        return mk_f(n)(x)
+
+    def j(x, n):
+        return mk_j(n)(x)
+
+    ns = NeqSys(2, 2, f, jac=j)
+    x, sol = ns.solve_scipy([0, 0], 3)
+    assert abs(x[0] - 0.8411639) < 2e-7
+    assert abs(x[1] - 0.1588361) < 2e-7

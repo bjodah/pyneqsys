@@ -7,22 +7,16 @@ import numpy as np
 from pyneqsys import SymbolicSys
 
 
-def main(init_a=0, init_b=0, savefig='None', plot=False,
-         savetxt='None', dpi=100):
+def main(init_a=0, init_b=0, savetxt='None'):
     x = sp.symarray('x', 2)
     f = [x[0] + (x[0] - x[1])**3/2 - 1,
          (x[1] - x[0])**3/2 + x[1]]
     neqsys = SymbolicSys(x, f)
-    out = neqsys.solve_scipy([init_a, init_b])
+    x, sol = neqsys.solve_scipy([init_a, init_b])
     if savetxt != 'None':
-        np.savetxt(out, savetxt)
-    if plot:
-        import matplotlib.pyplot as plt
-        plt.plot(out[:, 0], out[:, 1:])
-        if savefig != 'None':
-            plt.savefig(savefig, dpi=dpi)
-        else:
-            plt.show()
+        np.savetxt(x, savetxt)
+    else:
+        print(sol)
 
 if __name__ == '__main__':
     try:

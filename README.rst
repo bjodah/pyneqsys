@@ -37,7 +37,7 @@ Source distribution is available here:
 
 Example
 -------
-Example reformulated from SciPy documentation:
+Example reformulated from `SciPy documentation <docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root.html>`_:
 
 .. code:: python
 
@@ -48,8 +48,9 @@ Example reformulated from SciPy documentation:
    >>> f = [x[0] + (x[0] - x[1])**3/2 - 1,
    ...      (x[1] - x[0])**3/2 + x[1]]
    >>> neqsys = SymbolicSys(x, f)
-   >>> sol = neqsys.solve_scipy([1, 0])
-   >>> print(sol.x)
+   >>> x, sol = neqsys.solve_scipy([1, 0])
+   >>> assert sol.success
+   >>> print(x)
    [ 0.8411639  0.1588361]
 
 here we did not need to enter the jacobian manually, SymPy did that for us.
