@@ -16,19 +16,13 @@ requirements:
         - numpy
         - sympy
         - scipy
-        - pyodeint
-        - pygslodeiv2
-        - pycvodes
+        - pyodesys
 
 test:
     imports:
         - pyneqsys
     requires:
         - pytest
-        - scipy
-        - pyodeint
-        - pygslodeiv2
-        - pycvodes
 
 about:
     home: https://github.com/bjodah/pyneqsys
