@@ -30,6 +30,8 @@ class SymbolicSys(NeqSys):
         number of lower and upper bands in jacobian.
     lambdify: callback
         default: sympy.lambdify
+    lambdify_unpack: bool (default: True)
+        whether or not unpacking of args needed when calling lambdify callback
     Matrix: class
         default: sympy.Matrix
     \*\*kwargs:
@@ -42,14 +44,15 @@ class SymbolicSys(NeqSys):
     """
 
     def __init__(self, x, exprs, params=(), jac=True, band=None,
-                 lambdify=None, Matrix=None, expand_params=False,
-                 **kwargs):
+                 lambdify=None, lambdify_unpack=True, Matrix=None,
+                 expand_params=False, **kwargs):
         self.x = x
         self.exprs = exprs
         self.params = params
         self._jac = jac
         self.band = band
         self.lambdify = lambdify or _lambdify
+        self.lambdify_unpack = lambdify_unpack
         if Matrix is None:
             import sympy
             self.Matrix = sympy.ImmutableMatrix
@@ -98,14 +101,22 @@ class SymbolicSys(NeqSys):
         cb = self.lambdify(list(chain(self.x, self.params)), self.exprs)
 
         def f(x, *args):
-            return cb(*chain(x, args[0] if self.expand_params else args))
+            new_args = chain(x, args[0] if self.expand_params else args)
+            if self.lambdify_unpack:
+                return cb(*new_args)
+            else:
+                return cb(new_args)
         return f
 
     def get_j_callback(self):
         cb = self.lambdify(list(chain(self.x, self.params)), self.get_jac())
 
         def j(x, *args):
-            return cb(*chain(x, args[0] if self.expand_params else args))
+            new_args = chain(x, args[0] if self.expand_params else args)
+            if self.lambdify_unpack:
+                return cb(*new_args)
+            else:
+                return cb(new_args)
         return j
 
 
