@@ -3,14 +3,32 @@
 from __future__ import absolute_import, division, print_function
 
 from itertools import chain
+import numpy as np
+import sympy as sp
 
 from .core import NeqSys
 from pyodesys.util import banded_jacobian, check_transforms
 
 
-from pyodesys.symbolic import (
-    _lambdify, _symarray, _num_transformer_factory
-)
+def _lambdify(*args, **kwargs):
+    if 'modules' not in kwargs:
+        kwargs['modules'] = [{'ImmutableMatrix': np.array}, 'numpy']
+    return sp.lambdify(*args, **kwargs)
+
+
+def _symarray(prefix, shape, Symbol=None):
+    # see https://github.com/sympy/sympy/pull/9939
+    # when released: return sp.symarray(key, n, real=True)
+    arr = np.empty(shape, dtype=object)
+    for index in np.ndindex(shape):
+        arr[index] = (Symbol or (lambda name: sp.Symbol(name, real=True)))(
+            '%s_%s' % (prefix, '_'.join(map(str, index))))
+    return arr
+
+
+def _num_transformer_factory(fw, bw, dep, lambdify=None):
+    lambdify = lambdify or _lambdify
+    return lambdify(dep, fw), lambdify(dep, bw)
 
 
 class SymbolicSys(NeqSys):
@@ -103,6 +121,7 @@ class SymbolicSys(NeqSys):
         def f(x, *args):
             new_args = chain(x, args[0] if self.expand_params else args)
             if self.lambdify_unpack:
+
                 return cb(*new_args)
             else:
                 return cb(new_args)
