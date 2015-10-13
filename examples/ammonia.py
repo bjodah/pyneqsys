@@ -23,7 +23,7 @@ def main(init_conc='1e-7,1e-7,1e-7,1,55.5',
     # lHp + lNH3 - lNH4p - lnKa,
     coeffs = [[1, 1, 0, 0, -1], [1, 0, -1, 1, 0]]
     vals = [lnKw, lnKa]
-    lp = linear_exprs(x, coeffs, vals, rref=rref)
+    lp = linear_exprs(coeffs, x, vals, rref=rref)
     f = lp + [
         Hp + OHm + 4*NH4p + 3*NH3 + 2*H2O - (
             iHp + iOHm + 4*iNH4p + 3*iNH3 + 2*iH2O),  # H
