@@ -155,9 +155,12 @@ class TransformedSys(SymbolicSys):
         self._post_processor = lambda xarr: self.fw_cb(*xarr)
 
     @classmethod
-    def from_callback(cls, cb, nx, transf_cbs=None, **kwargs):
+    def from_callback(cls, cb, nx, expr_transf=None,
+                      transf_cbs=None, **kwargs):
         x = _symarray('x', nx)
         exprs = cb(x)
+        if expr_transf is not None:
+            exprs = [expr_transf(expr) for expr in exprs]
         if transf_cbs is not None:
             try:
                 transf = [(transf_cbs[idx][0](xi),
@@ -179,20 +182,23 @@ def linear_rref(A, b, Matrix=None):
     return raug[:nindep, :-1], raug[:nindep, -1]
 
 
-def linear_exprs(x, A, b, rref=False, Matrix=None):
+def linear_exprs(A, x, b=None, rref=False, Matrix=None):
     """
     returns Ax - b
 
-    x: iterable of symbols
     A: matrix_like of numbers
         of shape (len(b), len(x))
-    b: array_like of numbers
+    x: iterable of symbols
+    b: array_like of numbers (default: None)
+        when None, assume zeros of length len(x)
     Matrix: class
         When ``rref == Ture``: A matrix class which supports slicing,
         and methods ``dot`` and ``rref``. Defaults to sympy.Matrix
     rref: bool (default: False)
         calculate the reduced row echelon form of (A | -b)
     """
+    if b is None:
+        b = [0]*len(x)
     if rref:
         rA, rb = linear_rref(A, b, Matrix)
         return [lhs - rhs for lhs, rhs in zip(rA.dot(x), rb)]
