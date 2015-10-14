@@ -37,6 +37,8 @@ class SymbolicSys(NeqSys):
     ----------
     x: iterable of Symbols
     exprs: iterable of expressions for f
+    params: iterable of Symbols (optional)
+        list of symbols appearing in exprs which are parameters
     jac: ImmutableMatrix or bool (default: True)
         If True:
             calculate jacobian from exprs
