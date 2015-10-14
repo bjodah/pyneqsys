@@ -121,7 +121,6 @@ class SymbolicSys(NeqSys):
         def f(x, *args):
             new_args = chain(x, args[0] if self.expand_params else args)
             if self.lambdify_unpack:
-
                 return cb(*new_args)
             else:
                 return cb(new_args)

@@ -73,8 +73,8 @@ class NeqSys(object):
         ----------
         x0: array_like
             initial guess
-        y0: array_like
-            Initial values at xout[0] for the dependent variables.
+        params: array_like (default: None)
+            (Optional) parameters
         tol: float
             Tolerance
         method: str (default: None)
