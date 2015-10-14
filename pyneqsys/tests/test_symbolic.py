@@ -7,6 +7,19 @@ from ..symbolic import linear_exprs, TransformedSys
 from .test_core import mk_f
 
 
+def test_SymbolicSys():
+    # from: http://stackoverflow.com/questions/33135238
+    a, b, t = sp.symbols('a b t')
+
+    def f(x):
+        return 1/(x+a)**t + b
+    neqsys = SymbolicSys([a, b], [f(0) - 1, f(1) - 0], [t])
+    ab, sol = neqsys.solve_scipy([0.5, -0.5], 1)
+    assert sol.success
+    assert abs(ab[0] - (-1/2 + 5**0.5/2)) < 1e-10
+    assert abs(ab[1] - (1/2 - 5**0.5/2)) < 1e-10
+
+
 def test_symbolicsys__from_callback():
     ss = SymbolicSys.from_callback(mk_f(3), 2)
     x, sol = ss.solve_scipy([0, 0])
