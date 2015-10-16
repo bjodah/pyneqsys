@@ -156,12 +156,12 @@ class TransformedSys(SymbolicSys):
         self._post_processor = lambda xarr: self.fw_cb(*xarr)
 
     @classmethod
-    def from_callback(cls, cb, nx, expr_transf=None,
+    def from_callback(cls, cb, nx, exprs_transf=None,
                       transf_cbs=None, **kwargs):
         x = _symarray('x', nx)
         exprs = cb(x)
-        if expr_transf is not None:
-            exprs = [expr_transf(expr) for expr in exprs]
+        if exprs_transf is not None:
+            exprs = [exprs_transf(expr) for expr in exprs]
         if transf_cbs is not None:
             try:
                 transf = [(transf_cbs[idx][0](xi),

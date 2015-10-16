@@ -6,6 +6,16 @@ from itertools import chain
 import warnings
 
 
+def _copy(arr):
+    try:
+        return arr.copy()
+    except AttributeError:
+        try:
+            return arr[:]
+        except TypeError:
+            return arr  # e.g. type(arr) == int
+
+
 class NeqSys(object):
     """
     Object representing nonlinear equation system.
@@ -109,3 +119,48 @@ class NeqSys(object):
                    **kwargs)
 
         return self.post_process(sol.x), sol
+
+    def solve_series(self, solver, x0, params, varied_data, idx_varied, *args,
+                     **kwargs):
+        import numpy as np
+        xout = np.empty((len(varied_data), len(x0)))
+        sols = []
+        new_x0 = _copy(x0)
+        new_params = _copy(params)
+        for idx, value in enumerate(varied_data):
+            try:
+                new_params[idx_varied] = value
+            except TypeError:
+                new_params = value  # e.g. type(new_params) == int
+            x, sol = self.solve(solver, new_x0, new_params, *args, **kwargs)
+            if sol.success:
+                new_x0 = x
+            xout[idx, :] = x
+            sols.append(sol)
+        return xout, sols
+
+    def plot_series(self, idx_varied, varied_data, xres, sols=None, plot=None,
+                    plot_kwargs_cb=None, fig=None, Figure=None,
+                    ls=('-', '--', ':', '-.'),
+                    c=('k', 'r', 'g', 'b', 'c', 'm', 'y')):
+        if fig is None:
+            if Figure is None:
+                from matplotlib.pyplot import Figure
+            fig = Figure()
+        if plot is None:
+            ax = fig.add_subplot(1, 1, 1)
+            plot = ax.plot
+        if plot_kwargs_cb is None:
+            names = getattr(self, 'names', None)
+
+            def plot_kwargs_cb(idx):
+                kwargs = {'ls': ls[idx % len(ls)],
+                          'c': c[idx % len(c)]}
+                if names:
+                    kwargs['label'] = names[idx]
+                return kwargs
+        else:
+            plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
+        for idx in range(xres.shape[1]):
+            plot(varied_data, xres[:, idx], **plot_kwargs_cb(idx))
+        return fig
