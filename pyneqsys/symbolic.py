@@ -6,7 +6,7 @@ from itertools import chain
 import numpy as np
 import sympy as sp
 
-from .core import NeqSys
+from .core import NeqSys, _ensure_2args
 from pyodesys.util import banded_jacobian, check_transforms
 
 
@@ -46,8 +46,6 @@ class SymbolicSys(NeqSys):
             do not compute jacobian (numeric approximation)
         If ImmutableMatrix:
             user provided expressions for the jacobian
-    band: tuple of two ints or None (default)
-        number of lower and upper bands in jacobian.
     lambdify: callback
         default: sympy.lambdify
     lambdify_unpack: bool (default: True)
@@ -55,7 +53,7 @@ class SymbolicSys(NeqSys):
     Matrix: class
         default: sympy.Matrix
     \*\*kwargs:
-        default kwargs to ``solve()``
+        See :py:class:`NeqSys`
 
     Notes
     -----
@@ -63,14 +61,12 @@ class SymbolicSys(NeqSys):
     an upper limit on number of arguments.
     """
 
-    def __init__(self, x, exprs, params=(), jac=True, band=None,
-                 lambdify=None, lambdify_unpack=True, Matrix=None,
-                 expand_params=False, **kwargs):
+    def __init__(self, x, exprs, params=(), jac=True, lambdify=None,
+                 lambdify_unpack=True, Matrix=None, **kwargs):
         self.x = x
         self.exprs = exprs
         self.params = params
         self._jac = jac
-        self.band = band
         self.lambdify = lambdify or _lambdify
         self.lambdify_unpack = lambdify_unpack
         if Matrix is None:
@@ -78,30 +74,21 @@ class SymbolicSys(NeqSys):
             self.Matrix = sympy.ImmutableMatrix
         else:
             self.Matrix = Matrix
-        self.expand_params = expand_params
-        self.kwargs = kwargs
-
-        self.f_callback = self.get_f_callback()
-        self.j_callback = self.get_j_callback()
+        self.nf, self.nx = len(exprs), len(x)  # needed by get_*_callback
+        self.band = kwargs.get('band', None)  # needed by get_*_callback
+        super(SymbolicSys, self).__init__(self.nf, self.nx,
+                                          self.get_f_callback(),
+                                          self.get_j_callback(),
+                                          **kwargs)
 
     @classmethod
-    def from_callback(cls, cb, nx, nparams=-1, **kwargs):
+    def from_callback(cls, cb, nx, nparams=0, **kwargs):
         x = _symarray('x', nx)
-        if nparams == -1:
-            p = ()
-            exprs = cb(x)
-        else:
-            p = _symarray('p', nparams)
-            exprs = cb(x, p)
+        p = _symarray('p', nparams)
+        if nparams == 0:
+            cb = _ensure_2args(cb)
+        exprs = cb(x, p)
         return cls(x, exprs, p, **kwargs)
-
-    @property
-    def nx(self):
-        return len(self.x)
-
-    @property
-    def nf(self):
-        return len(self.exprs)
 
     def get_jac(self):
         if self._jac is True:
@@ -120,8 +107,8 @@ class SymbolicSys(NeqSys):
     def get_f_callback(self):
         cb = self.lambdify(list(chain(self.x, self.params)), self.exprs)
 
-        def f(x, *args):
-            new_args = chain(x, args[0] if self.expand_params else args)
+        def f(x, params):
+            new_args = list(chain(x, params))
             if self.lambdify_unpack:
                 return cb(*new_args)
             else:
@@ -131,8 +118,8 @@ class SymbolicSys(NeqSys):
     def get_j_callback(self):
         cb = self.lambdify(list(chain(self.x, self.params)), self.get_jac())
 
-        def j(x, *args):
-            new_args = chain(x, args[0] if self.expand_params else args)
+        def j(x, params):
+            new_args = chain(x, params)
             if self.lambdify_unpack:
                 return cb(*new_args)
             else:
@@ -142,24 +129,27 @@ class SymbolicSys(NeqSys):
 
 class TransformedSys(SymbolicSys):
 
-    def __init__(self, x, exprs, transf=None, **kwargs):
+    def __init__(self, x, exprs, transf=None, params=(), **kwargs):
         if transf is not None:
             self.fw, self.bw = zip(*transf)
             check_transforms(self.fw, self.bw, x)
             exprs = [e.subs(zip(x, self.fw)) for e in exprs]
         else:
             self.fw, self.bw = None, None
-        super(TransformedSys, self).__init__(x, exprs, **kwargs)
+        super(TransformedSys, self).__init__(x, exprs, params, **kwargs)
 
         self.fw_cb, self.bw_cb = _num_transformer_factory(self.fw, self.bw, x)
         self._pre_processor = lambda xarr: self.bw_cb(*xarr)
         self._post_processor = lambda xarr: self.fw_cb(*xarr)
 
     @classmethod
-    def from_callback(cls, cb, nx, exprs_transf=None,
+    def from_callback(cls, cb, nx, nparams=0, exprs_transf=None,
                       transf_cbs=None, **kwargs):
         x = _symarray('x', nx)
-        exprs = cb(x)
+        p = _symarray('p', nparams)
+        if nparams == 0:
+            cb = _ensure_2args(cb)
+        exprs = cb(x, p)
         if exprs_transf is not None:
             exprs = [exprs_transf(expr) for expr in exprs]
         if transf_cbs is not None:
@@ -171,7 +161,7 @@ class TransformedSys(SymbolicSys):
                 transf = zip(map(transf_cbs[0], x), map(transf_cbs[1], x))
         else:
             transf = None
-        return cls(x, exprs, transf, **kwargs)
+        return cls(x, exprs, transf, p, **kwargs)
 
 
 def linear_rref(A, b, Matrix=None):

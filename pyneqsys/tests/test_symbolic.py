@@ -4,7 +4,7 @@ import sympy as sp
 
 from .. import SymbolicSys
 from ..symbolic import linear_exprs, TransformedSys
-from .test_core import mk_f
+from .test_core import f
 
 
 def test_SymbolicSys():
@@ -21,28 +21,27 @@ def test_SymbolicSys():
 
 
 def test_symbolicsys__from_callback():
-    ss = SymbolicSys.from_callback(mk_f(3), 2)
-    x, sol = ss.solve_scipy([0, 0])
+    ss = SymbolicSys.from_callback(f, 2, 1)
+    x, sol = ss.solve_scipy([1, 0], [3])
     assert sol.success
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
 
 
-def test_symbolicsys__from_callback__params():
-    def f(x, args):
-        n = args[0]
-        return mk_f(n)(x)
+def test_symbolicsys__from_callback__no_params():
+    def _nf(x):
+        return f(x, [3])
 
-    ss = SymbolicSys.from_callback(f, 2, 1)
-    x, sol = ss.solve_scipy([.7, .3], 3)
+    ss = SymbolicSys.from_callback(_nf, 2)
+    x, sol = ss.solve_scipy([.7, .3])
     assert sol.success
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
 
 
 def test_TransformedSys__from_callback():
-    ts = TransformedSys.from_callback(mk_f(3), 2, None, (sp.exp, sp.log))
-    x, sol = ts.solve('scipy', [1, 1])
+    ts = TransformedSys.from_callback(f, 2, 1, transf_cbs=(sp.exp, sp.log))
+    x, sol = ts.solve('scipy', [1, .1], [3])
     assert sol.success
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
