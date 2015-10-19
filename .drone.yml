@@ -10,6 +10,7 @@ script:
   - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov pyneqsys --cov-report html
   - python2 setup.py sdist
   - ./scripts/generate_docs.sh
+  - ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
   - ssh "${MY_SERVER}" "mkdir -p ~/public_html/$DRONE_BRANCH" && scp -r doc/ dist/* htmlcov/ ${MY_SERVER}:~/public_html/$DRONE_BRANCH
   - touch doc/_build/html/.nojekyll
   - git config --global user.name "drone"
