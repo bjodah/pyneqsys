@@ -11,6 +11,9 @@ pyneqsys
 .. image:: https://img.shields.io/pypi/l/pyneqsys.svg
    :target: https://github.com/bjodah/pyneqsys/blob/master/LICENSE
    :alt: License
+.. image:: http://hera.physchem.kth.se/~pyneqsys/master/htmlcov/coverage.svg
+   :target: http://hera.physchem.kth.se/~pyneqsys/master/htmlcov
+   :alt: coverage
 
 `pyneqsys <https://github.com/bjodah/pyneqsys>`_ provides a convenience class for 
 representing and solving non-linear equation systems from `SymPy <http://www.sympy.org>`_
