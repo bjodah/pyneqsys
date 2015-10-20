@@ -44,7 +44,7 @@ Source distribution is available here:
 
 Example
 -------
-Example reformulated from `SciPy documentation <docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root.html>`_:
+Example reformulated from `SciPy documentation <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root.html>`_:
 
 .. code:: python
 
