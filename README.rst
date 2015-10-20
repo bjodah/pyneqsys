@@ -19,7 +19,11 @@ pyneqsys
 representing and solving non-linear equation systems from `SymPy <http://www.sympy.org>`_
 expressions.
 
-The numerical root finding is perfomed using `scipy.optimize.root <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimzie.root.html>`_.
+The numerical root finding is perfomed using either:
+
+- scipy: `scipy.optimize.root <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimzie.root.html>`_
+- nleq2: `pynleq2.solve <http://bjodah.github.io/pynleq2/pynleq2.html#pynleq2.solve>`_ (unsettled API)
+
 
 Documentation
 -------------
@@ -51,7 +55,7 @@ Example reformulated from `SciPy documentation <docs.scipy.org/doc/scipy/referen
    >>> f = [x[0] + (x[0] - x[1])**3/2 - 1,
    ...      (x[1] - x[0])**3/2 + x[1]]
    >>> neqsys = SymbolicSys(x, f)
-   >>> x, sol = neqsys.solve_scipy([1, 0])
+   >>> x, sol = neqsys.solve('scipy', [1, 0])
    >>> assert sol.success
    >>> print(x)
    [ 0.8411639  0.1588361]

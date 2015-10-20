@@ -22,16 +22,32 @@ def j(x, params):
     ]
 
 
-def test_neqsys_params():
+def _test_neqsys_params(solver):
     ns = NeqSys(2, 2, f, jac=j)
-    x, sol = ns.solve_scipy([0, 0], [3])
+    x, sol = ns.solve(solver, [0, 0], [3])
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
 
 
-def test_neqsys_no_params():
+def test_neqsys_params_scipy():
+    _test_neqsys_params('scipy')
+
+
+def test_neqsys_params_nleq2():
+    _test_neqsys_params('nleq2')
+
+
+def _test_neqsys_no_params(solver):
     ns = NeqSys(2, 2, lambda x: f(x, [3]),
                 jac=lambda x: j(x, [3]))
-    x, sol = ns.solve_scipy([0, 0])
+    x, sol = ns.solve(solver, [0, 0])
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
+
+
+def test_neqsys_no_params_scipy():
+    _test_neqsys_no_params('scipy')
+
+
+def test_neqsys_no_params_nleq2():
+    _test_neqsys_no_params('nleq2')
