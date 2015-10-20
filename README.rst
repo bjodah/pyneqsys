@@ -48,13 +48,10 @@ Example reformulated from `SciPy documentation <docs.scipy.org/doc/scipy/referen
 
 .. code:: python
 
-   >>> import sympy as sp
-   >>> import numpy as np
    >>> from pyneqsys import SymbolicSys
-   >>> x = sp.symarray('x', 2)
-   >>> f = [x[0] + (x[0] - x[1])**3/2 - 1,
-   ...      (x[1] - x[0])**3/2 + x[1]]
-   >>> neqsys = SymbolicSys(x, f)
+   >>> neqsys = SymbolicSys.from_callback(
+   ...     lambda x: [(x[0] - x[1])**3/2 + x[0] - 1,
+   ...                (x[1] - x[0])**3/2 + x[1]], 2)
    >>> x, sol = neqsys.solve('scipy', [1, 0])
    >>> assert sol.success
    >>> print(x)
