@@ -73,6 +73,25 @@ class NeqSys(object):
         """
         return getattr(self, 'solve_'+solver)(*args, **kwargs)
 
+    def solve_series(self, solver, x0, params, varied_data, idx_varied, *args,
+                     **kwargs):
+        import numpy as np
+        xout = np.empty((len(varied_data), len(x0)))
+        sols = []
+        new_x0 = np.array(x0, dtype=np.float64)
+        new_params = np.atleast_1d(np.array(params, dtype=np.float64))
+        for idx, value in enumerate(varied_data):
+            try:
+                new_params[idx_varied] = value
+            except TypeError:
+                new_params = value  # e.g. type(new_params) == int
+            x, sol = self.solve(solver, new_x0, new_params, *args, **kwargs)
+            if sol.success:
+                new_x0 = x
+            xout[idx, :] = x
+            sols.append(sol)
+        return xout, sols
+
     def solve_scipy(self, x0, params=None, tol=1e-8, method=None, **kwargs):
         """
         Use scipy.optimize.root
@@ -123,24 +142,19 @@ class NeqSys(object):
 
         return self.post_process(sol.x), sol
 
-    def solve_series(self, solver, x0, params, varied_data, idx_varied, *args,
-                     **kwargs):
-        import numpy as np
-        xout = np.empty((len(varied_data), len(x0)))
-        sols = []
-        new_x0 = np.array(x0, dtype=np.float64)
-        new_params = np.atleast_1d(np.array(params, dtype=np.float64))
-        for idx, value in enumerate(varied_data):
-            try:
-                new_params[idx_varied] = value
-            except TypeError:
-                new_params = value  # e.g. type(new_params) == int
-            x, sol = self.solve(solver, new_x0, new_params, *args, **kwargs)
-            if sol.success:
-                new_x0 = x
-            xout[idx, :] = x
-            sols.append(sol)
-        return xout, sols
+    def solve_nleq2(self, x0, params=None, tol=1e-8, method=None, **kwargs):
+        """ Provisional, subject to unnotified API breaks """
+        from pynleq2 import solve
+
+        def f(x, ierr):
+            return self.f_callback(x[:self.nx], x[self.nx:])
+        x, ierr = solve(
+            (lambda x, ierr: (self.f_callback(x, params), ierr)),
+            (lambda x, ierr: (self.j_callback(x, params), ierr)),
+            self.pre_process(x0),
+            **kwargs
+        )
+        return self.post_process(x), ierr
 
     def plot_series(self, idx_varied, varied_data, xres, sols=None, plot=None,
                     plot_kwargs_cb=None, ls=('-', '--', ':', '-.'),
