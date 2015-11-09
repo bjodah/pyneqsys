@@ -21,6 +21,7 @@ class NeqSys(object):
     Provides unified interface to:
 
     - scipy.optimize.root
+    - nleq2
 
     TODO: add more solvers, e.g. KINSOL.
 
@@ -37,7 +38,7 @@ class NeqSys(object):
         Jacobian matrix (dfdy). optional
     band: tuple (default: None)
         number of sub- and super-diagonals in jacobian.
-    names: iterable of str
+    names: iterable of str (default: None)
         names of variables, used for plotting
     """
 
@@ -174,3 +175,7 @@ class NeqSys(object):
             plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
         for idx in range(xres.shape[1]):
             plot(varied_data, xres[:, idx], **plot_kwargs_cb(idx))
+
+
+class ConditionalNeqSys(object):
+    pass
