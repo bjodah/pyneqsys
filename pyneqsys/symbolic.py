@@ -6,7 +6,7 @@ from itertools import chain
 import numpy as np
 import sympy as sp
 
-from .core import NeqSys, _ensure_2args
+from .core import NeqSys, _ensure_2args, ConditionalNeqSys
 from pyodesys.util import banded_jacobian, check_transforms
 
 
@@ -136,11 +136,12 @@ class TransformedSys(SymbolicSys):
             exprs = [e.subs(zip(x, self.fw)) for e in exprs]
         else:
             self.fw, self.bw = None, None
-        super(TransformedSys, self).__init__(x, exprs, params, **kwargs)
-
         self.fw_cb, self.bw_cb = _num_transformer_factory(self.fw, self.bw, x)
-        self._pre_processor = lambda xarr: self.bw_cb(*xarr)
-        self._post_processor = lambda xarr: self.fw_cb(*xarr)
+        super(TransformedSys, self).__init__(
+            x, exprs, params,
+            pre_processor=lambda xarr: self.bw_cb(*xarr),
+            post_processor=lambda xarr: self.fw_cb(*xarr),
+            **kwargs)
 
     @classmethod
     def from_callback(cls, cb, nx, nparams=0, exprs_transf=None,
