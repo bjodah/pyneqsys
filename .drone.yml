@@ -1,20 +1,25 @@
-image: bjodah/dockerfile-bjodah-scicomp:14.04c
+image: bjodah/bjodahimg:latest
 git:
     path: github.com/bjodah/pyneqsys
 env:
+  - PKG_NAME=pyneqsys
   - MY_SERVER=pyneqsys@hera.physchem.kth.se
 script:
   - if [[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then export PYNEQSYS_RELEASE_VERSION=$DRONE_BRANCH; echo ${PYNEQSYS_RELEASE_VERSION} | tail -c +2 > __conda_version__.txt; fi
-  - pip install --user -r requirements.txt
-  - pip3 install --user -r requirements.txt
-  - pip install --user pynleq2
-  - pip3 install --user pynleq2
-  - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov pyneqsys --cov-report html
+  - pip install -r requirements.txt
+  - pip3 install -r requirements.txt
+  - pip install pynleq2
+  - pip3 install pynleq2
+  - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
   - python2 setup.py sdist
+  - pip install dist/*.tar.gz
+  - (cd examples/; ipython2 nbconvert --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
+  - (cd examples/; ../scripts/render_index.sh *.html)
   - ./scripts/generate_docs.sh
   - ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
-  - ssh "${MY_SERVER}" "mkdir -p ~/public_html/$DRONE_BRANCH" && scp -r doc/ dist/* htmlcov/ ${MY_SERVER}:~/public_html/$DRONE_BRANCH
+  - ssh "${MY_SERVER}" "mkdir -p ~/public_html/$DRONE_BRANCH"
+  - scp -r doc/_build/html dist/* htmlcov/ examples/ ${MY_SERVER}:~/public_html/$DRONE_BRANCH
   - touch doc/_build/html/.nojekyll
   - git config --global user.name "drone"
-  - git config --global user.email "drone@hera.physchem.kth.se"
-  - if [[ "$DRONE_BRANCH" == "master" ]]; then ./scripts/github_upload.sh doc/_build/html bjodah pyneqsys gh-pages; fi
+  - git config --global user.email ${MY_SERVER}
+  - if [[ "$DRONE_BRANCH" == "master" ]]; then ./scripts/github_upload.sh doc/_build/html bjodah $PKG_NAME gh-pages; fi

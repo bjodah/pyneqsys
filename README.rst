@@ -1,4 +1,3 @@
-========
 pyneqsys
 ========
 
@@ -57,7 +56,9 @@ Example reformulated from `SciPy documentation <http://docs.scipy.org/doc/scipy/
    >>> print(x)
    [ 0.8411639  0.1588361]
 
-here we did not need to enter the jacobian manually, SymPy did that for us.
+here we did not need to enter the jacobian manually, SymPy did that for us. For more examples look see
+`examples/ <https://github.com/bjodah/pyneqsys/tree/master/examples>`_, and rendered jupyter notebooks here:
+`<http://hera.physchem.kth.se/~pyneqsys/master/examples>`_
 
 
 License
