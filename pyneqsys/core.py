@@ -19,13 +19,13 @@ def _ensure_2args(func):
 
 
 def solve_series(solve, x0, params, var_data, var_idx, **kwargs):
-    xout = np.empty((len(varied_data), len(x0)))
+    xout = np.empty((len(var_data), len(x0)))
     sols = []
     new_x0 = np.array(x0, dtype=np.float64)
     new_params = np.atleast_1d(np.array(params, dtype=np.float64))
-    for idx, value in enumerate(varied_data):
+    for idx, value in enumerate(var_data):
         try:
-            new_params[idx_varied] = value
+            new_params[var_idx] = value
         except TypeError:
             new_params = value  # e.g. type(new_params) == int
         x, sol = solve(new_x0, new_params, **kwargs)

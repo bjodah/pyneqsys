@@ -31,6 +31,15 @@ def _test_neqsys_params(solver):
     assert abs(x[1] - 0.1588361) < 2e-7
 
 
+def _test_neqsys_solve_series(solver):
+    ns = NeqSys(2, 2, f, jac=j)
+    x, sol = ns.solve_series(solver, [0, 0], [0], var_data=[2, 3], var_idx=0)
+    assert abs(x[0, 0] - 0.5) < 2e-7
+    assert abs(x[0, 1] + 0.5) < 2e-7
+    assert abs(x[1, 0] - 0.8411639) < 2e-7
+    assert abs(x[1, 1] - 0.1588361) < 2e-7
+
+
 def test_neqsys_params_scipy():
     _test_neqsys_params('scipy')
 
