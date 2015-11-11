@@ -1,3 +1,7 @@
+v0.1.4
+======
+- Added ConditionalNeqSys
+
 v0.1.3
 ======
 - Added convenince methods: solve_series and plot_series to NeqSys
