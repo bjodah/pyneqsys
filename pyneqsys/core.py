@@ -9,6 +9,9 @@ import numpy as np
 
 
 def _ensure_2args(func):
+    if func is None:
+        return None
+
     if len(inspect.getargspec(func)[0]) == 1:
         return lambda x, params: func(x)
     else:
@@ -34,14 +37,13 @@ def solve_series(solve, x0, params, var_data, var_idx, **kwargs):
 
 
 class NeqSys(object):
-    """
+    """Represent a system of non-linear equations
+
     Object representing nonlinear equation system.
     Provides unified interface to:
 
     - scipy.optimize.root
     - nleq2
-
-    TODO: add more solvers, e.g. KINSOL.
 
     Parameters
     ----------
@@ -62,6 +64,20 @@ class NeqSys(object):
         (forward) transformation of user-input to :py:meth:`solve`
     post_processor: callback (array -> array)
         (backward) transformation of result from :py:meth:`solve`
+
+    Examples
+    --------
+    >>> neqsys = NeqSys(2, 2, lambda x, p: [(x[0] - x[1])**p[0]/2 + x[0] - 1,
+    ...                                     (x[1] - x[0])**p[0]/2 + x[1]])
+    >>> x, sol = neqsys.solve('scipy', [1, 0], [3])
+    >>> assert sol.success
+    >>> print(x)
+    [ 0.8411639  0.1588361]
+
+    See Also
+    --------
+    pyneqsys.symbolic.SymbolicSys : use a CAS (SymPy by default) to derive
+                                    the jacobian.
     """
 
     def __init__(self, nf, nx, f, jac=None, band=None, names=None,
@@ -75,7 +91,6 @@ class NeqSys(object):
         self.names = names
         self.pre_processor = pre_processor
         self.post_processor = post_processor
-
 
     def pre_process(self, x0):
         # Should be used by all methods matching "solve_*"
@@ -186,7 +201,22 @@ class NeqSys(object):
 
 
 class ConditionalNeqSys(object):
-    """
+    """ Collect multiple systems of non-linear equations with different
+    conditionals.
+
+    If a problem in a fixed number of variables is described by different
+    systems of equations this class may be used to describe that set of
+    systems.
+
+    The user provides a set of conditions which governs what system of
+    equations to apply. The set of conditions then represent a vector
+    of booleans which is passed to a user provided NeqSys-factory.
+    The conditions may be asymmetrical (each condition consits of two
+    callbacks, one for evaluating when the condition was previously False,
+    and one when it was previously False. The motivation for this asymmetry
+    is that a user may want to introduce a tolerance for numerical noise in
+    the solution (and avoid possibly infinte recursion)
+
     Parameters
     ----------
     conditions: list of (callback, callback) tuples
@@ -194,6 +224,33 @@ class ConditionalNeqSys(object):
     neqsys_factory: callback
         should have the signature f(conds) -> NeqSys instance
         where conds is a list of bools
+
+    Example
+    -------
+    >>> from math import sin, pi
+    >>> f_a = lambda x, p: [sin(p[0]*x[0])]  # when x <= 0
+    >>> f_b = lambda x, p: [x[0]*(p[1]-x[0])]  # when x >= 0
+    >>> factory = lambda conds: NeqSys(1, 1, f_b) if conds[0] else NeqSys(
+    ...     1, 1, f_a)
+    >>> cneqsys = ConditionalNeqSys([(lambda x, p: x[0] > 0,  # no 0-switch
+    ...                               lambda x, p: x[0] >= 0)],  # no 0-switch
+    ...                             factory)
+    >>> x, sol = cneqsys.solve('scipy', [0], [pi, 3])
+    >>> assert sol.success
+    >>> print(x)
+    [ 0.]
+    >>> x, sol = cneqsys.solve('scipy', [-1.4], [pi, 3])
+    >>> assert sol.success
+    >>> print(x)
+    [-1.]
+    >>> x, sol = cneqsys.solve('scipy', [2], [pi, 3])
+    >>> assert sol.success
+    >>> print(x)
+    [ 3.]
+    >>> x, sol = cneqsys.solve('scipy', [7], [pi, 3])
+    >>> assert sol.success
+    >>> print(x)
+    [ 3.]
     """
 
     def __init__(self, conditions, neqsys_factory):
@@ -204,10 +261,9 @@ class ConditionalNeqSys(object):
         conds = [fw(x0, params) for fw, bw in self.conditions]
         idx = 0
         while idx < conditional_maxiter:
-            print(conds, x0)
             neqsys = self.neqsys_factory(conds)
             x0, sol = neqsys.solve(solver, x0, params, **kwargs)
-            new_conds = [not bw(x0, params) if prev else fw(x0, params)
+            new_conds = [bw(x0, params) if prev else fw(x0, params)
                          for prev, (fw, bw) in zip(conds, self.conditions)]
             if new_conds == conds:
                 break
@@ -216,7 +272,6 @@ class ConditionalNeqSys(object):
             idx += 1
         if idx == conditional_maxiter:
             raise Exception("Solving failed, conditional_maxiter reached")
-        print(conds, x0)
         return x0, sol
 
     def solve_series(self, solver, x0, params, var_data, var_idx, **kwargs):

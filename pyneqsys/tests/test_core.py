@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
-from .. import NeqSys
+import numpy as np
+from .. import NeqSys, ConditionalNeqSys
 
 
 def f(x, params):
@@ -51,3 +53,78 @@ def test_neqsys_no_params_scipy():
 
 def test_neqsys_no_params_nleq2():
     _test_neqsys_no_params('nleq2')
+
+
+def test_ConditionalNeqSys1():
+    from math import pi, sin
+
+    def f_a(x, p):
+        return [sin(p[0]*x[0])]  # when x <= 0
+
+    def f_b(x, p):
+        return [x[0]*(p[1]-x[0])]  # when x >= 0
+
+    def factory(conds):
+        return NeqSys(1, 1, f_b) if conds[0] else NeqSys(1, 1, f_a)
+
+    cneqsys = ConditionalNeqSys([
+        (lambda x, p: x[0] > 0, lambda x, p: x[0] >= 0)], factory)
+    x, sol = cneqsys.solve('scipy', [0], [pi, 3])
+    assert sol.success
+    assert abs(x[0]) < 1e-13
+    x, sol = cneqsys.solve('scipy', [-1.4], [pi, 3])
+    assert sol.success
+    assert abs(x[0] + 1) < 1e-13
+    x, sol = cneqsys.solve('scipy', [2], [pi, 3])
+    assert sol.success
+    assert abs(x[0] - 3) < 1e-13
+    x, sol = cneqsys.solve('scipy', [7], [pi, 3])
+    assert sol.success
+    assert abs(x[0] - 3) < 1e-13
+
+
+def test_ConditionalNeqSys2():
+    # This is an example of NaCl precipitation
+    # x = Na+, Cl-, NaCl(s)
+    # p = [Na+]0, [Cl-]0, [NaCl(s)]0, Ksp
+    # f[0] = x[0] + x[2] - p[0] - p[2]
+    # f[1] = x[1] + x[2] - p[1] - p[2]
+    # switch to precipitation: x[0]*x[1] > p[3]
+    # keep precipitation if: x[2] > 0
+    #
+    # If we have a precipitate
+    #    f[2] = x[0]*x[1] - p[3]
+    # otherwise:
+    #    f[2] = x[2]
+
+    def factory(conds):
+        precip = conds[0]
+
+        def cb(x, p):
+            f = [None]*3
+            f[0] = x[0] + x[2] - p[0] - p[2]
+            f[1] = x[1] + x[2] - p[1] - p[2]
+            if precip:
+                f[2] = x[0]*x[1] - p[3]
+            else:
+                f[2] = x[2]
+            return f
+        return NeqSys(3, 3, cb)
+
+    cneqsys = ConditionalNeqSys([
+        (lambda x, p: x[0]*x[1] > p[3],
+         lambda x, p: x[2] > 0)
+    ], factory)
+
+    for init, final in [([1, 1, 1], [2, 2, 0]),
+                        ([1, 1, 0], [1, 1, 0]),
+                        ([3, 3, 3], [2, 2, 4]),
+                        ([3, 3, 0], [2, 2, 1]),
+                        ([0, 0, 3], [2, 2, 1]),
+                        ([0, 0, 2], [2, 2, 0]),
+                        ([2, 2, 0], [2, 2, 0]),
+                        ([2, 2, 2], [2, 2, 2]),
+                        ([2+1e-8, 2+1e-8, 0], [2, 2, 1e-8])]:
+        for guess in [(1, 1, 1), (1, 1, 0), (3, 3, 0), (1, 1, 3)]:
+            x, sol = cneqsys.solve('scipy', guess, init + [4])
+            assert sol.success and np.allclose(x, final)
