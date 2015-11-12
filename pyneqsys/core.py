@@ -18,7 +18,7 @@ def _ensure_2args(func):
         return func
 
 
-def solve_series(solve, x0, params, var_data, var_idx, **kwargs):
+def _solve_series(solve, x0, params, var_data, var_idx, **kwargs):
     xout = np.empty((len(var_data), len(x0)))
     sols = []
     new_x0 = np.array(x0, dtype=np.float64)
@@ -93,6 +93,7 @@ class NeqSys(object):
         self.post_processor = post_processor
 
     def pre_process(self, x0):
+        """ Used internally for transformation of variables """
         # Should be used by all methods matching "solve_*"
         if self.pre_processor is None:
             return x0
@@ -100,6 +101,7 @@ class NeqSys(object):
             return self.pre_processor(x0)
 
     def post_process(self, out):
+        """ Used internally for transformation of variables """
         # Should be used by all methods matching "solve_*"
         if self.post_processor is None:
             return out
@@ -113,14 +115,15 @@ class NeqSys(object):
         return getattr(self, 'solve_'+solver)(*args, **kwargs)
 
     def solve_series(self, solver, x0, params, var_data, var_idx, **kwargs):
-        return solve_series(getattr(self, 'solve_'+solver),
-                            x0, params, var_data, var_idx, **kwargs)
+        """ Solve for a series of values of a parameter """
+        return _solve_series(getattr(self, 'solve_'+solver),
+                             x0, params, var_data, var_idx, **kwargs)
 
     def solve_scipy(self, x0, params=None, tol=1e-8, method=None, **kwargs):
         """
-        Use scipy.optimize.root
-        see: http://docs.scipy.org/doc/scipy/reference/
-                 generated/scipy.optimize.root.html
+        Use ``scipy.optimize.root``
+        see: http://docs.scipy.org/doc/scipy/reference/\
+generated/scipy.optimize.root.html
 
         Parameters
         ----------
@@ -183,6 +186,7 @@ class NeqSys(object):
     def plot_series(self, idx_varied, varied_data, xres, sols=None, plot=None,
                     plot_kwargs_cb=None, ls=('-', '--', ':', '-.'),
                     c=('k', 'r', 'g', 'b', 'c', 'm', 'y')):
+        """ Plot the values of the solution vector vs the varied parameter """
         if plot is None:
             from matplotlib.pyplot import plot
         if plot_kwargs_cb is None:
@@ -225,8 +229,8 @@ class ConditionalNeqSys(object):
         should have the signature f(conds) -> NeqSys instance
         where conds is a list of bools
 
-    Example
-    -------
+    Examples
+    --------
     >>> from math import sin, pi
     >>> f_a = lambda x, p: [sin(p[0]*x[0])]  # when x <= 0
     >>> f_b = lambda x, p: [x[0]*(p[1]-x[0])]  # when x >= 0
@@ -251,6 +255,7 @@ class ConditionalNeqSys(object):
     >>> assert sol.success
     >>> print(x)
     [ 3.]
+
     """
 
     def __init__(self, conditions, neqsys_factory):
@@ -258,6 +263,7 @@ class ConditionalNeqSys(object):
         self.neqsys_factory = neqsys_factory
 
     def solve(self, solver, x0, params, conditional_maxiter=15, **kwargs):
+        """ Solve the problem (systems of equations) """
         conds = [fw(x0, params) for fw, bw in self.conditions]
         idx = 0
         while idx < conditional_maxiter:
@@ -275,5 +281,6 @@ class ConditionalNeqSys(object):
         return x0, sol
 
     def solve_series(self, solver, x0, params, var_data, var_idx, **kwargs):
-        return solve_series(lambda x, p, **kw: self.solve(solver, x, p, **kw),
-                            x0, params, var_data, var_idx, **kwargs)
+        """ Solve for a series of values of a parameter """
+        return _solve_series(lambda x, p, **kw: self.solve(solver, x, p, **kw),
+                             x0, params, var_data, var_idx, **kwargs)

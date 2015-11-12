@@ -47,17 +47,30 @@ class SymbolicSys(NeqSys):
         If ImmutableMatrix:
             user provided expressions for the jacobian
     lambdify: callback
-        default: sympy.lambdify
+        default: ``sympy.lambdify``
     lambdify_unpack: bool (default: True)
         whether or not unpacking of args needed when calling lambdify callback
     Matrix: class
         default: sympy.Matrix
     \*\*kwargs:
-        See :py:class:`NeqSys`
+        See :py:class:`pyneqsys.core.NeqSys`
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> e = sp.exp
+    >>> x = x0, x1 = sp.symbols('x:2')
+    >>> params = a, b = sp.symbols('a b')
+    >>> neqsys = SymbolicSys(x, [a*(1 - x0), b*(x1 - x0**2)], params)
+    >>> xout, sol = neqsys.solve('scipy', [-10, -5], [1, 10])
+    >>> print(xout)
+    [ 1.  1.]
+    >>> print(neqsys.get_jac()[0, 0])
+    -a
 
     Notes
     -----
-    Works for a moderate number of unknowns, sympy.lambdify has
+    Works for a moderate number of unknowns, ``sympy.lambdify`` has
     an upper limit on number of arguments.
     """
 
@@ -77,12 +90,13 @@ class SymbolicSys(NeqSys):
         self.nf, self.nx = len(exprs), len(x)  # needed by get_*_callback
         self.band = kwargs.get('band', None)  # needed by get_*_callback
         super(SymbolicSys, self).__init__(self.nf, self.nx,
-                                          self.get_f_callback(),
-                                          self.get_j_callback(),
+                                          self._get_f_callback(),
+                                          self._get_j_callback(),
                                           **kwargs)
 
     @classmethod
     def from_callback(cls, cb, nx, nparams=0, **kwargs):
+        """ Generate a SymbolicSys instance from a callback"""
         x = _symarray('x', nx)
         p = _symarray('p', nparams)
         if nparams == 0:
@@ -91,6 +105,7 @@ class SymbolicSys(NeqSys):
         return cls(x, exprs, p, **kwargs)
 
     def get_jac(self):
+        """ Return the jacobian of the expressions """
         if self._jac is True:
             if self.band is None:
                 f = self.Matrix(1, self.nf, lambda _, q: self.exprs[q])
@@ -104,7 +119,7 @@ class SymbolicSys(NeqSys):
         else:
             return self._jac
 
-    def get_f_callback(self):
+    def _get_f_callback(self):
         cb = self.lambdify(list(chain(self.x, self.params)), self.exprs)
 
         def f(x, params):
@@ -115,7 +130,7 @@ class SymbolicSys(NeqSys):
                 return cb(new_args)
         return f
 
-    def get_j_callback(self):
+    def _get_j_callback(self):
         cb = self.lambdify(list(chain(self.x, self.params)), self.get_jac())
 
         def j(x, params):
@@ -128,6 +143,10 @@ class SymbolicSys(NeqSys):
 
 
 class TransformedSys(SymbolicSys):
+    """ A system which transforms the equations and variables internally
+
+    Can be used to reformulate a problem in a numerically more stable form.
+    """
 
     def __init__(self, x, exprs, transf=None, params=(), **kwargs):
         if transf is not None:
@@ -146,6 +165,7 @@ class TransformedSys(SymbolicSys):
     @classmethod
     def from_callback(cls, cb, nx, nparams=0, exprs_transf=None,
                       transf_cbs=None, **kwargs):
+        """ Generate a TransformedSys instance from a callback """
         x = _symarray('x', nx)
         p = _symarray('p', nparams)
         if nparams == 0:
@@ -166,6 +186,21 @@ class TransformedSys(SymbolicSys):
 
 
 def linear_rref(A, b, Matrix=None):
+    """ Transform a linear system to reduced row-echelon form
+
+    Transforms both the matrix and right-hand side of a linear
+    system of equations to reduced row echelon form
+
+    Parameters
+    ----------
+    A: Matrix-like
+        iterable of rows
+    b: iterable
+
+    Returns
+    -------
+    A', b' - transformed versions
+    """
     if Matrix is None:
         from sympy import Matrix
     aug = Matrix([list(row) + [v] for row, v in zip(A, b)])
@@ -178,6 +213,8 @@ def linear_exprs(A, x, b=None, rref=False, Matrix=None):
     """
     returns Ax - b
 
+    Parameters
+    ----------
     A: matrix_like of numbers
         of shape (len(b), len(x))
     x: iterable of symbols
@@ -188,6 +225,10 @@ def linear_exprs(A, x, b=None, rref=False, Matrix=None):
         and methods ``dot`` and ``rref``. Defaults to sympy.Matrix
     rref: bool (default: False)
         calculate the reduced row echelon form of (A | -b)
+
+    Returns
+    -------
+    A list of the elements in the resulting column vector
     """
     if b is None:
         b = [0]*len(x)
