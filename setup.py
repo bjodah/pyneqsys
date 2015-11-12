@@ -41,7 +41,7 @@ tests = [
     'pyneqsys.tests',
 ]
 
-with open(os.path.join(pkg_name,'__init__.py')) as f:
+with open(os.path.join(pkg_name, '__init__.py')) as f:
     long_description = f.read().split('"""')[1]
 descr = 'Solving of symbolic systems of non-linear equations numerically.'
 setup_kwargs = dict(
