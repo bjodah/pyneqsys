@@ -215,3 +215,9 @@ def test_ConditionalNeqSys3():
 def test_version():
     from pyneqsys import __version__
     assert int(__version__.split('.')[0]) >= 0
+
+
+def test_solve_series():
+    neqsys = NeqSys(1, 1, lambda x, p: [x[0]-p[0]])
+    xout, sols = neqsys.solve_series('scipy', [0], [0], [0, 1, 2, 3], 0)
+    assert np.allclose(xout[:, 0], [0, 1, 2, 3])
