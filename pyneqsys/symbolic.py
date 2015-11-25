@@ -158,8 +158,8 @@ class TransformedSys(SymbolicSys):
         self.fw_cb, self.bw_cb = _num_transformer_factory(self.fw, self.bw, x)
         super(TransformedSys, self).__init__(
             x, exprs, params,
-            pre_processor=lambda xarr: self.bw_cb(*xarr),
-            post_processor=lambda xarr: self.fw_cb(*xarr),
+            pre_processors=[lambda xarr, params: (self.bw_cb(*xarr), params)],
+            post_processors=[lambda xarr, params: (self.fw_cb(*xarr), params)],
             **kwargs)
 
     @classmethod
