@@ -210,3 +210,8 @@ def test_ConditionalNeqSys3():
     ], factory)
 
     _check_NaCl(cneqsys, [None], 4, method='lm')
+
+
+def test_version():
+    from pyneqsys import __version__
+    assert int(__version__.split('.')[0]) >= 0
