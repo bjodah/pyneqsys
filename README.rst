@@ -20,7 +20,7 @@ expressions.
 
 The numerical root finding is perfomed using either:
 
-- scipy: `scipy.optimize.root <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimzie.root.html>`_
+- scipy: `scipy.optimize.root <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root.html>`_
 - nleq2: `pynleq2.solve <http://bjodah.github.io/pynleq2/pynleq2.html#pynleq2.solve>`_ (unsettled API)
 
 

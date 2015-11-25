@@ -92,6 +92,29 @@ def test_ConditionalNeqSys1():
     assert abs(x[0] - 3) < 1e-13
 
 
+def _check_NaCl(cneqsys, guesses, cases=-1, **kwargs):
+    _init_final = [
+        ([1, 1, 1], [2, 2, 0]),
+        ([1, 1, 0], [1, 1, 0]),
+        ([3, 3, 3], [2, 2, 4]),
+        ([2, 2, 0], [2, 2, 0]),
+        ([2+1e-8, 2+1e-8, 0], [2, 2, 1e-8]),
+        ([3, 3, 0], [2, 2, 1]),
+        ([0, 0, 3], [2, 2, 1]),
+        ([0, 0, 2], [2, 2, 0]),
+        ([2, 2, 2], [2, 2, 2]),
+    ]
+
+    for init, final in _init_final[:cases]:
+        print(init)
+        for guess in guesses:
+            print(guess)
+            if guess is None:
+                guess = init
+            x, sol = cneqsys.solve('scipy', guess, init + [4], **kwargs)
+            assert sol.success and np.allclose(x, final)
+
+
 def test_ConditionalNeqSys2():
     # This is an example of NaCl precipitation
     # x = Na+, Cl-, NaCl(s)
@@ -125,15 +148,65 @@ def test_ConditionalNeqSys2():
          lambda x, p: x[2] > 0)
     ], factory)
 
-    for init, final in [([1, 1, 1], [2, 2, 0]),
-                        ([1, 1, 0], [1, 1, 0]),
-                        ([3, 3, 3], [2, 2, 4]),
-                        ([3, 3, 0], [2, 2, 1]),
-                        ([0, 0, 3], [2, 2, 1]),
-                        ([0, 0, 2], [2, 2, 0]),
-                        ([2, 2, 0], [2, 2, 0]),
-                        ([2, 2, 2], [2, 2, 2]),
-                        ([2+1e-8, 2+1e-8, 0], [2, 2, 1e-8])]:
-        for guess in [(1, 1, 1), (1, 1, 0), (3, 3, 0), (1, 1, 3)]:
-            x, sol = cneqsys.solve('scipy', guess, init + [4])
-            assert sol.success and np.allclose(x, final)
+    _check_NaCl(cneqsys, [(1, 1, 1), (1, 1, 0), (2, 2, 0), (1, 1, 3)])
+
+
+def test_ConditionalNeqSys3():
+    # This is equivalent to ConditionalNeqSys3
+    # but this time variable transformations
+    # are performed
+    from math import exp, log
+
+    small = -60
+
+    def pre_processor(x, p):
+        return np.log(np.asarray(x) + exp(small)), p
+
+    def post_processor(x, p):
+        return np.exp(x), p
+
+    def factory(conds):
+        precip = conds[0]
+
+        def fun(x, p):
+            f = [None]*3
+            f[0] = exp(x[0]) + exp(x[2]) - p[0] - p[2]
+            f[1] = exp(x[1]) + exp(x[2]) - p[1] - p[2]
+            if precip:
+                f[2] = x[0] + x[1] - log(p[3])
+            else:
+                f[2] = x[2] - small
+            return f
+
+        def jac(x, p):
+            jout = np.empty((3, 3))
+
+            jout[0, 0] = exp(x[0])
+            jout[0, 1] = 0
+            jout[0, 2] = exp(x[2])
+
+            jout[1, 0] = 0
+            jout[1, 1] = exp(x[1])
+            jout[1, 2] = exp(x[2])
+
+            if precip:
+                jout[2, 0] = 1
+                jout[2, 1] = 1
+                jout[2, 2] = 0
+            else:
+                jout[2, 0] = 0
+                jout[2, 1] = 0
+                jout[2, 2] = 1
+
+            return jout
+
+        return NeqSys(3, 3, fun, jac,
+                      pre_processors=[pre_processor],
+                      post_processors=[post_processor])
+
+    cneqsys = ConditionalNeqSys([
+        (lambda x, p: x[0]*x[1] > p[3],
+         lambda x, p: x[2] > exp(small))
+    ], factory)
+
+    _check_NaCl(cneqsys, [None], 4, method='lm')

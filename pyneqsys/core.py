@@ -60,10 +60,14 @@ class NeqSys(object):
         number of sub- and super-diagonals in jacobian.
     names: iterable of str (default: None)
         names of variables, used for plotting
-    pre_processor: callback (array -> array)
+    pre_processors: iterable of callables (optional)
         (forward) transformation of user-input to :py:meth:`solve`
-    post_processor: callback (array -> array)
+        signature: f(x1[:], params1[:]) -> x2[:], params2[:]
+        insert at beginning
+    post_processors: iterable of callables (optional)
         (backward) transformation of result from :py:meth:`solve`
+        signature: f(x2[:], params2[:]) -> x1[:], params1[:]
+        insert at end
 
     Examples
     --------
@@ -81,7 +85,7 @@ class NeqSys(object):
     """
 
     def __init__(self, nf, nx, f, jac=None, band=None, names=None,
-                 pre_processor=None, post_processor=None):
+                 pre_processors=None, post_processors=None):
         if nf < nx:
             raise ValueError("Under-determined system")
         self.nf, self.nx = nf, nx
@@ -89,24 +93,22 @@ class NeqSys(object):
         self.j_callback = _ensure_2args(jac)
         self.band = band
         self.names = names
-        self.pre_processor = pre_processor
-        self.post_processor = post_processor
+        self.pre_processors = pre_processors or []
+        self.post_processors = post_processors or []
 
-    def pre_process(self, x0):
+    def pre_process(self, x0, params=()):
         """ Used internally for transformation of variables """
         # Should be used by all methods matching "solve_*"
-        if self.pre_processor is None:
-            return x0
-        else:
-            return self.pre_processor(x0)
+        for pre_processor in self.pre_processors:
+            x0, params = pre_processor(x0, params)
+        return x0, params
 
-    def post_process(self, out):
+    def post_process(self, xout, params_out):
         """ Used internally for transformation of variables """
         # Should be used by all methods matching "solve_*"
-        if self.post_processor is None:
-            return out
-        else:
-            return self.post_processor(out)
+        for post_processor in self.post_processors:
+            xout, params_out = post_processor(xout, params_out)
+        return xout, params_out
 
     def solve(self, solver, *args, **kwargs):
         """
@@ -119,7 +121,7 @@ class NeqSys(object):
         return _solve_series(getattr(self, 'solve_'+solver),
                              x0, params, var_data, var_idx, **kwargs)
 
-    def solve_scipy(self, x0, params=None, tol=1e-8, method=None, **kwargs):
+    def solve_scipy(self, x0, params=(), tol=1e-8, method=None, **kwargs):
         """
         Use ``scipy.optimize.root``
         see: http://docs.scipy.org/doc/scipy/reference/\
@@ -138,7 +140,9 @@ generated/scipy.optimize.root.html
 
         Returns
         -------
-        array of length self.nx
+        Length 2 tuple:
+           - solution (array of length self.nx)
+           - additional output from solver
         """
         from scipy.optimize import root
         if method is None:
@@ -153,35 +157,36 @@ generated/scipy.optimize.root.html
         if 'args' in kwargs:
             raise ValueError("Set 'args' as params in initialization instead.")
 
+        intern_x0, self.internal_params = self.pre_process(x0, params)
+
         new_kwargs = kwargs.copy()
         if self.band is not None:
             warnings.warn("Band argument ignored (see SciPy docs)")
             new_kwargs['band'] = self.band
-        if params is None:
-            new_kwargs['args'] = []
-        else:
-            new_kwargs['args'] = np.atleast_1d(np.array(
-                params, dtype=np.float64))
+        new_kwargs['args'] = np.atleast_1d(np.array(
+            self.internal_params, dtype=np.float64))
 
-        sol = root(self.f_callback, self.pre_process(x0),
+        sol = root(self.f_callback, intern_x0,
                    jac=self.j_callback, method=method, tol=tol,
                    **new_kwargs)
 
-        return self.post_process(sol.x), sol
+        return self.post_process(sol.x, self.internal_params)[:1] + (sol,)
 
-    def solve_nleq2(self, x0, params=None, tol=1e-8, method=None, **kwargs):
+    def solve_nleq2(self, x0, params=(), tol=1e-8, method=None, **kwargs):
         """ Provisional, subject to unnotified API breaks """
         from pynleq2 import solve
+
+        intern_x0, self.internal_params = self.pre_process(x0, params)
 
         def f(x, ierr):
             return self.f_callback(x[:self.nx], x[self.nx:])
         x, ierr = solve(
-            (lambda x, ierr: (self.f_callback(x, params), ierr)),
-            (lambda x, ierr: (self.j_callback(x, params), ierr)),
-            self.pre_process(x0),
+            (lambda x, ierr: (self.f_callback(x, self.internal_params), ierr)),
+            (lambda x, ierr: (self.j_callback(x, self.internal_params), ierr)),
+            intern_x0,
             **kwargs
         )
-        return self.post_process(x), ierr
+        return self.post_process(x, self.internal_params)[:1] + (ierr,)
 
     def plot_series(self, idx_varied, varied_data, xres, sols=None, plot=None,
                     plot_kwargs_cb=None, ls=('-', '--', ':', '-.'),
@@ -264,17 +269,17 @@ class ConditionalNeqSys(object):
 
     def solve(self, solver, x0, params, conditional_maxiter=15, **kwargs):
         """ Solve the problem (systems of equations) """
-        conds = [fw(x0, params) for fw, bw in self.conditions]
+        conds = tuple([fw(x0, params) for fw, bw in self.conditions])
         idx = 0
         while idx < conditional_maxiter:
             neqsys = self.neqsys_factory(conds)
             x0, sol = neqsys.solve(solver, x0, params, **kwargs)
-            new_conds = [bw(x0, params) if prev else fw(x0, params)
-                         for prev, (fw, bw) in zip(conds, self.conditions)]
-            if new_conds == conds:
+            nconds = tuple([bw(x0, params) if prev else fw(x0, params)
+                            for prev, (fw, bw) in zip(conds, self.conditions)])
+            if nconds == conds:
                 break
             else:
-                conds = new_conds
+                conds = nconds
             idx += 1
         if idx == conditional_maxiter:
             raise Exception("Solving failed, conditional_maxiter reached")

@@ -1,3 +1,7 @@
+v0.2.0
+======
+- Use of of pre-/post-processors
+
 v0.1.4
 ======
 - Added ConditionalNeqSys

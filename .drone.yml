@@ -10,6 +10,8 @@ script:
   - pip3 install -r requirements.txt
   - pip install pynleq2
   - pip3 install pynleq2
+  - pip install http://hera.physchem.kth.se/~pysym/master/pysym-0.1.0.dev0.tar.gz
+  - pip3 install http://hera.physchem.kth.se/~pysym/master/pysym-0.1.0.dev0.tar.gz
   - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
   - python2 setup.py sdist
   - pip install dist/*.tar.gz
@@ -20,6 +22,7 @@ script:
   - ssh "${MY_SERVER}" "mkdir -p ~/public_html/$DRONE_BRANCH"
   - scp -r doc/_build/html dist/* htmlcov/ examples/ ${MY_SERVER}:~/public_html/$DRONE_BRANCH
   - touch doc/_build/html/.nojekyll
+  - cp LICENSE doc/_build/html/
   - git config --global user.name "drone"
   - git config --global user.email ${MY_SERVER}
   - if [[ "$DRONE_BRANCH" == "master" ]]; then ./scripts/github_upload.sh doc/_build/html bjodah $PKG_NAME gh-pages; fi
