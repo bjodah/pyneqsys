@@ -3,7 +3,7 @@
 
 import os
 import shutil
-from distutils.core import setup
+from setuptools import setup
 
 
 pkg_name = 'pyneqsys'
@@ -30,7 +30,7 @@ else:
     exec(open(release_py_path).read())
 
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Topic :: Scientific/Engineering',
@@ -43,6 +43,7 @@ tests = [
 
 with open(os.path.join(pkg_name, '__init__.py')) as f:
     long_description = f.read().split('"""')[1]
+
 descr = 'Solving of symbolic systems of non-linear equations numerically.'
 setup_kwargs = dict(
     name=pkg_name,
@@ -54,7 +55,9 @@ setup_kwargs = dict(
     author_email='bjodah@DELETEMEgmail.com',
     url='https://github.com/bjodah/' + pkg_name,
     license='BSD',
-    packages=[pkg_name] + tests
+    packages=[pkg_name] + tests,
+    install_requires=['numpy'],
+    extras_require={'all': ['sympy', 'scipy', 'pyodesys']}
 )
 
 if __name__ == '__main__':

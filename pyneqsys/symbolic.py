@@ -3,33 +3,13 @@
 from __future__ import absolute_import, division, print_function
 
 from itertools import chain
-import numpy as np
 
-from .core import NeqSys, _ensure_2args
+from pyodesys.symbolic import (
+    _lambdify, _lambdify_unpack, _Matrix, _Symbol, _Dummy, _symarray
+)
 from pyodesys.util import banded_jacobian, check_transforms
 
-
-def _lambdify(*args, **kwargs):
-    import sympy as sp
-    if 'modules' not in kwargs:
-        kwargs['modules'] = [{'ImmutableMatrix': np.array}, 'numpy']
-    return sp.lambdify(*args, **kwargs)
-
-
-def _symarray(prefix, shape, Symbol=None):
-    # see https://github.com/sympy/sympy/pull/9939
-    # when released: return sp.symarray(key, n, real=True)
-    import sympy as sp
-    arr = np.empty(shape, dtype=object)
-    for index in np.ndindex(shape):
-        arr[index] = (Symbol or (lambda name: sp.Symbol(name, real=True)))(
-            '%s_%s' % (prefix, '_'.join(map(str, index))))
-    return arr
-
-
-def _num_transformer_factory(fw, bw, dep, lambdify=None):
-    lambdify = lambdify or _lambdify
-    return lambdify(dep, fw), lambdify(dep, bw)
+from .core import NeqSys, _ensure_2args
 
 
 class SymbolicSys(NeqSys):
@@ -76,19 +56,19 @@ class SymbolicSys(NeqSys):
     """
 
     def __init__(self, x, exprs, params=(), jac=True, lambdify=None,
-                 lambdify_unpack=True, symarray=None, Matrix=None, **kwargs):
+                 lambdify_unpack=True, Matrix=None, Symbol=None, Dummy=None,
+                 symarray=None, **kwargs):
         self.x = x
         self.exprs = exprs
         self.params = params
         self._jac = jac
-        self.lambdify = lambdify or _lambdify
-        self.lambdify_unpack = lambdify_unpack
-        self.symarray = symarray or _symarray
-        if Matrix is None:
-            import sympy
-            self.Matrix = sympy.ImmutableMatrix
-        else:
-            self.Matrix = Matrix
+        self.lambdify = lambdify or _lambdify()
+        self.lambdify_unpack = (_lambdify_unpack() if lambdify_unpack is None
+                                else lambdify_unpack)
+        self.Matrix = Matrix or _Matrix()
+        self.Symbol = Symbol or _Symbol()
+        self.Dummy = Dummy or _Dummy()
+        self.symarray = symarray or _symarray()
         self.nf, self.nx = len(exprs), len(x)  # needed by get_*_callback
         self.band = kwargs.get('band', None)  # needed by get_*_callback
         super(SymbolicSys, self).__init__(self.nf, self.nx,
@@ -99,8 +79,8 @@ class SymbolicSys(NeqSys):
     @classmethod
     def from_callback(cls, cb, nx, nparams=0, **kwargs):
         """ Generate a SymbolicSys instance from a callback"""
-        x = kwargs.get('symarray', _symarray)('x', nx)
-        p = kwargs.get('symarray', _symarray)('p', nparams)
+        x = kwargs.get('symarray', _symarray())('x', nx)
+        p = kwargs.get('symarray', _symarray())('p', nparams)
         if nparams == 0:
             cb = _ensure_2args(cb)
         exprs = cb(x, p)
@@ -157,19 +137,21 @@ class TransformedSys(SymbolicSys):
             exprs = [e.subs(zip(x, self.fw)) for e in exprs]
         else:
             self.fw, self.bw = None, None
-        self.fw_cb, self.bw_cb = _num_transformer_factory(self.fw, self.bw, x)
         super(TransformedSys, self).__init__(
             x, exprs, params,
             pre_processors=[lambda xarr, params: (self.bw_cb(*xarr), params)],
             post_processors=[lambda xarr, params: (self.fw_cb(*xarr), params)],
             **kwargs)
+        if self.fw is not None:
+            self.fw_cb = self.lambdify(x, self.fw)
+            self.bw_cb = self.lambdify(x, self.bw)
 
     @classmethod
     def from_callback(cls, cb, nx, nparams=0, exprs_transf=None,
                       transf_cbs=None, **kwargs):
         """ Generate a TransformedSys instance from a callback """
-        x = kwargs.get('symarray', _symarray)('x', nx)
-        p = kwargs.get('symarray', _symarray)('p', nparams)
+        x = kwargs.get('symarray', _symarray())('x', nx)
+        p = kwargs.get('symarray', _symarray())('p', nparams)
         if nparams == 0:
             cb = _ensure_2args(cb)
         exprs = cb(x, p)
