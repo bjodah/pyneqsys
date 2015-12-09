@@ -1,3 +1,8 @@
+v0.2.1
+======
+- Fixed bug in SymbolicSys jacobian evaluation.
+- Use pyodesys mechanism to dynamically use sympy/symengine/pysym for pyneqsys.symbolic
+
 v0.2.0
 ======
 - Use of of pre-/post-processors
