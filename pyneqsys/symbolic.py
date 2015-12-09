@@ -116,7 +116,7 @@ class SymbolicSys(NeqSys):
         cb = self.lambdify(list(chain(self.x, self.params)), self.get_jac())
 
         def j(x, params):
-            new_args = chain(x, params)
+            new_args = list(chain(x, params))
             if self.lambdify_unpack:
                 return cb(*new_args)
             else:
