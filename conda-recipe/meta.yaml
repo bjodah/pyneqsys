@@ -1,6 +1,6 @@
 package:
     name: pyneqsys
-    version: 0.1.0.git
+    version: 0.3.0.dev1
 
 source:
     path: ../
@@ -11,6 +11,7 @@ build:
 requirements:
     build:
         - python
+        - numpy
     run:
         - python
         - numpy
@@ -24,6 +25,8 @@ test:
         - pyneqsys
     requires:
         - pytest
+    commands:
+        - py.test --pyargs pyneqsys
 
 about:
     home: https://github.com/bjodah/pyneqsys

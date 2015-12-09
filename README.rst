@@ -1,8 +1,8 @@
 pyneqsys
 ========
 
-.. image:: http://hera.physchem.kth.se:8080/github.com/bjodah/pyneqsys/status.svg?branch=master
-   :target: http://hera.physchem.kth.se:8080/github.com/bjodah/pyneqsys
+.. image:: http://hera.physchem.kth.se:9090/api/badges/bjodah/pyneqsys/status.svg
+   :target: http://hera.physchem.kth.se:9090/bjodah/pyneqsys
    :alt: Build status
 .. image:: https://img.shields.io/pypi/v/pyneqsys.svg
    :target: https://pypi.python.org/pypi/pyneqsys
