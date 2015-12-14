@@ -9,5 +9,5 @@ solvers such as MINPACK in SciPy or NLEQ2 in pynleq2 together.
 from __future__ import absolute_import
 
 from ._release import __version__
-from .core import NeqSys, ConditionalNeqSys
+from .core import NeqSys, ConditionalNeqSys, ChainedNeqSys
 from .symbolic import SymbolicSys

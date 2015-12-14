@@ -9,7 +9,7 @@ from pyodesys.symbolic import (
 )
 from pyodesys.util import banded_jacobian, check_transforms
 
-from .core import NeqSys, _ensure_2args
+from .core import NeqSys, _ensure_2args, ChainedNeqSys
 
 
 class SymbolicSys(NeqSys):
@@ -167,6 +167,16 @@ class TransformedSys(SymbolicSys):
         else:
             transf = None
         return cls(x, exprs, transf, p, **kwargs)
+
+
+# def chained_from_callbacks(callbacks, nx, nparams=0, pre_processors_pack=None,
+#                            post_processors_pack=None, SSys=SymbolicSys,
+#                            save_sols=False, **kwargs):
+#     """
+#     Convenience method
+#     """
+#     neqsystems = [SSys.from_callback(cb, nx, nparams, **kwargs) for cb in callbacks]
+#     return ChainedNeqSys(neqsystems, save_sols=save_sols)
 
 
 def linear_rref(A, b, Matrix=None):

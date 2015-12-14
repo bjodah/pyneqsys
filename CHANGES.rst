@@ -1,3 +1,8 @@
+v0.2.2
+======
+- Added ChainedNeqSys
+- In NeqSys.solve() arg "solver" may now be None -> $NEQSYS_SOLVER
+
 v0.2.1
 ======
 - Fixed bug in SymbolicSys jacobian evaluation.

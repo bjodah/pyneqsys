@@ -3,6 +3,7 @@
 from __future__ import absolute_import, division, print_function
 
 import inspect
+import os
 import warnings
 
 import numpy as np
@@ -113,7 +114,15 @@ class NeqSys(object):
     def solve(self, solver, *args, **kwargs):
         """
         Solve with ``solver``. Convenience method.
+
+        Parameters
+        ----------
+        solver: str or None
+            if str: returns solve_``solver``(\*args, \*\*kwargs)
+            if ``None``: chooses from PYNEQSYS_SOLVER environment variable
         """
+        if solver is None:
+            solver = os.environ.get('PYNEQSYS_SOLVER', 'scipy')
         return getattr(self, 'solve_'+solver)(*args, **kwargs)
 
     def solve_series(self, solver, x0, params, var_data, var_idx, **kwargs):
@@ -143,6 +152,7 @@ generated/scipy.optimize.root.html
         Length 2 tuple:
            - solution (array of length self.nx)
            - additional output from solver
+
         """
         from scipy.optimize import root
         if method is None:
@@ -209,7 +219,15 @@ generated/scipy.optimize.root.html
             plot(varied_data, xres[:, idx], **plot_kwargs_cb(idx))
 
 
-class ConditionalNeqSys(object):
+class _MultiNeqSys(object):
+
+    def solve_series(self, solver, x0, params, var_data, var_idx, **kwargs):
+        """ Solve for a series of values of a parameter """
+        return _solve_series(lambda x, p, **kw: self.solve(solver, x, p, **kw),
+                             x0, params, var_data, var_idx, **kwargs)
+
+
+class ConditionalNeqSys(_MultiNeqSys):
     """ Collect multiple systems of non-linear equations with different
     conditionals.
 
@@ -267,7 +285,7 @@ class ConditionalNeqSys(object):
         self.conditions = conditions
         self.neqsys_factory = neqsys_factory
 
-    def solve(self, solver, x0, params, conditional_maxiter=15, **kwargs):
+    def solve(self, solver, x0, params=(), conditional_maxiter=20, **kwargs):
         """ Solve the problem (systems of equations) """
         conds = tuple([fw(x0, params) for fw, bw in self.conditions])
         idx = 0
@@ -283,9 +301,42 @@ class ConditionalNeqSys(object):
             idx += 1
         if idx == conditional_maxiter:
             raise Exception("Solving failed, conditional_maxiter reached")
+        # print('conditional iter:', idx)#debugging
         return x0, sol
 
-    def solve_series(self, solver, x0, params, var_data, var_idx, **kwargs):
-        """ Solve for a series of values of a parameter """
-        return _solve_series(lambda x, p, **kw: self.solve(solver, x, p, **kw),
-                             x0, params, var_data, var_idx, **kwargs)
+
+class ChainedNeqSys(_MultiNeqSys):
+    """ Chain multiple formulations of non-linear systems for using
+    the result of one as starting guess for the other
+
+    Examples
+    --------
+    >>> neqsys_lin = NeqSys(1, 1, lambda x, p: [x[0]**2 - p[0]])
+    >>> from math import log, exp
+    >>> neqsys_log = NeqSys(1, 1, lambda x, p: [2*x[0] - log(p[0])],
+    ...    pre_processors=[lambda x, p: ([log(x[0]+1e-60)], p)],
+    ...    post_processors=[lambda x, p: ([exp(x[0])], p)])
+    >>> chained = ChainedNeqSys([neqsys_log, neqsys_lin], save_sols=True)
+    >>> x, sol = chained.solve('scipy', [1, 1], [4])
+    >>> assert sol.success
+    >>> print(x)
+    [ 2.]
+    >>> print(chained.last_solve_sols[0].nfev,
+    ...       chained.last_solve_sols[1].nfev)  # doctest: +SKIP
+    4 3
+    """
+
+    def __init__(self, neqsystems, save_sols=False):
+        self.neqsystems = neqsystems
+        self.save_sols = save_sols
+
+    def solve(self, solver, x0, params=(), **kwargs):
+        if self.save_sols:
+            self.last_solve_sols = []
+        # print('x0', x0)##DEBUG
+        for idx, neqsys in enumerate(self.neqsystems):
+            x0, sol = neqsys.solve(solver, x0, params, **kwargs)
+            # print(idx, x0)##DEBUG
+            if self.save_sols:
+                self.last_solve_sols.append(sol)
+        return x0, sol
