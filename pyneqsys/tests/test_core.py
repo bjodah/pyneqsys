@@ -81,16 +81,16 @@ def test_ConditionalNeqSys1():
     cneqsys = ConditionalNeqSys([
         (lambda x, p: x[0] > 0, lambda x, p: x[0] >= 0)], factory)
     x, sol = cneqsys.solve('scipy', [0], [pi, 3])
-    assert sol.success
+    assert sol['success']
     assert abs(x[0]) < 1e-13
     x, sol = cneqsys.solve('scipy', [-1.4], [pi, 3])
-    assert sol.success
+    assert sol['success']
     assert abs(x[0] + 1) < 1e-13
     x, sol = cneqsys.solve('scipy', [2], [pi, 3])
-    assert sol.success
+    assert sol['success']
     assert abs(x[0] - 3) < 1e-13
     x, sol = cneqsys.solve('scipy', [7], [pi, 3])
-    assert sol.success
+    assert sol['success']
     assert abs(x[0] - 3) < 1e-13
 
 
@@ -114,7 +114,7 @@ def _check_NaCl(cneqsys, guesses, cases=-1, **kwargs):
             if guess is None:
                 guess = init
             x, sol = cneqsys.solve('scipy', guess, init + [4], **kwargs)
-            assert sol.success and np.allclose(x, final)
+            assert sol['success'] and np.allclose(x, final)
 
 
 def _factory_lin(conds):
@@ -143,6 +143,7 @@ def _factory_lin(conds):
         return f
     return NeqSys(3, 3, cb)
 
+
 def _factory_log(small):
     # This is equivalent to _factory_lin
     # but this time variable transformations
@@ -156,7 +157,6 @@ def _factory_log(small):
 
         def post_processor(x, p):
             return np.exp(x), p
-
 
         def fun(x, p):
             f = [None]*3
@@ -214,6 +214,7 @@ def _get_cneqsys3(small):
          lambda x, p: x[2] > math.exp(small))
     ], _factory_log(small))
 
+
 def test_ConditionalNeqSys3():
     _check_NaCl(_get_cneqsys3(-60), [None], 4, method='lm')
 
@@ -234,5 +235,5 @@ def test_ChainedNeqSys():
     neqsys_lin = _get_cneqsys2()
     chained = ChainedNeqSys([neqsys_log, neqsys_lin], save_sols=True)
     _check_NaCl(chained, [None], 2, method='lm')
-    assert (chained.last_solve_sols[0].success and
-            chained.last_solve_sols[1].success)
+    assert (chained.last_solve_sols[0]['success'] and
+            chained.last_solve_sols[1]['success'])
