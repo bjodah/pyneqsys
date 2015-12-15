@@ -8,6 +8,23 @@ import warnings
 
 import numpy as np
 
+from .plotting import plot_series
+
+LRU_CACHE_SIZE = os.environ.get('PYNEQSYS_LRU_CACHE_SIZE', 256)
+
+try:
+    from fastcache import clru_cache
+except ImportError:
+    warnings.warn("Could not import 'fastcache' (look in PyPI), "
+                  "solving of ConditionalNeqSys may be slower.")
+
+    class clru_cache:
+        def __init__(*args, **kwargs):
+            pass
+
+        def __call__(self, fun):
+            return fun
+
 
 def _ensure_2args(func):
     if func is None:
@@ -21,7 +38,12 @@ def _ensure_2args(func):
 
 class _NeqSysBase(object):
 
-    def _solve_series(self, solve, x0, params, varied_data, varied_idx,
+    def _get_solver_cb(self, solver):
+        if solver is None:
+            solver = os.environ.get('PYNEQSYS_SOLVER', 'scipy')
+        return getattr(self, 'solve_' + solver)
+
+    def _solve_series(self, solver_cb, x0, params, varied_data, varied_idx,
                       **kwargs):
         new_params = np.atleast_1d(np.array(params, dtype=np.float64))
         xout = np.empty((len(varied_data), len(x0)))
@@ -35,7 +57,7 @@ class _NeqSysBase(object):
                 new_params[varied_idx] = value
             except TypeError:
                 new_params = value  # e.g. type(new_params) == int
-            x, sol = solve(new_x0, new_params, **kwargs)
+            x, sol = solver_cb(new_x0, new_params, **kwargs)
             try:
                 new_x0 = sol['sol_vecs'][0]  # See ChainedNeqSys.solve
             except:
@@ -46,6 +68,48 @@ class _NeqSysBase(object):
             self.internal_params_out[idx, :] = self.internal_params
             sols.append(sol)
         return xout, sols
+
+    def plot_series(self, *args, **kwargs):
+        if kwargs.get('labels') is None:
+            kwargs['labels'] = getattr(self, 'names', None)
+        plot_series(*args, **kwargs)
+
+    def plot_series_residuals(self, xres, varied_data, varied_idx, params,
+                              **kwargs):
+        xerr = np.empty((xres.shape[0], self.nf))
+        new_params = np.array(params)
+        for idx, row in enumerate(xres):
+            new_params[varied_idx] = varied_data[idx]
+            xerr[idx, :] = self.f_callback(*self.pre_process(row, params))
+        self.plot_series(xerr, varied_data, labels=False, **kwargs)
+
+    def plot_series_residuals_internal(self, varied_data, varied_idx,
+                                       **kwargs):
+        xerr = np.empty((self.internal_xout.shape[0], self.nf))
+        for idx, (res, params) in enumerate(zip(self.internal_xout,
+                                                self.internal_params_out)):
+            xerr[idx, :] = self.f_callback(res, params)
+        self.plot_series(xerr, varied_data, labels=False, **kwargs)
+
+    def solve_and_plot_series(self, solver, x0, params, varied_data,
+                              varied_idx,
+                              plot_series_ax=None,
+                              plot_series_residuals_ax=None,
+                              plot_series_kwargs=None,
+                              plot_series_residuals_kwargs=None,
+                              **kwargs):
+        """ Solve and plot for a series of a varied parameter """
+        xres, sols = self.solve_series(solver, x0, params, varied_data,
+                                       varied_idx, **kwargs)
+        self.plot_series(xres, varied_data, sols=sols, ax=plot_series_ax,
+                         **(plot_series_kwargs or {}))
+        if plot_series_residuals_ax is not None:
+            self.plot_series_residuals_internal(
+                varied_data, varied_idx, sols=sols,
+                ax=plot_series_residuals_ax,
+                **(plot_series_residuals_kwargs or {})
+            )
+        return xres, sols
 
 
 class NeqSys(_NeqSysBase):
@@ -132,14 +196,12 @@ class NeqSys(_NeqSysBase):
             if str: returns solve_``solver``(\*args, \*\*kwargs)
             if ``None``: chooses from PYNEQSYS_SOLVER environment variable
         """
-        if solver is None:
-            solver = os.environ.get('PYNEQSYS_SOLVER', 'scipy')
-        return getattr(self, 'solve_'+solver)(*args, **kwargs)
+        return self._get_solver_cb(solver)(*args, **kwargs)
 
     def solve_series(self, solver, x0, params, varied_data, varied_idx,
                      **kwargs):
         """ Solve for a series of values of a parameter """
-        return self._solve_series(getattr(self, 'solve_'+solver),
+        return self._solve_series(self._get_solver_cb(solver),
                                   x0, params, varied_data, varied_idx,
                                   **kwargs)
 
@@ -212,84 +274,6 @@ generated/scipy.optimize.root.html
         self.internal_x = x
         return self.post_process(x, self.internal_params)[:1] + (ierr,)
 
-    def plot_series(self, xres, varied_data, indices=None,
-                    sols=None, fail_vline=None, plot=None, plot_kwargs_cb=None,
-                    ls=('-', '--', ':', '-.'),
-                    c=('k', 'r', 'g', 'b', 'c', 'm', 'y'), labels=None,
-                    ax=None):
-        """ Plot the values of the solution vector vs the varied parameter """
-        if indices is None:
-            indices = range(xres.shape[1])
-        if fail_vline is None:
-            if sols is None:
-                fail_vline = False
-            else:
-                fail_vline = True
-        if plot is None:
-            if ax is None:
-                from matplotlib.pyplot import plot
-            else:
-                plot = ax.plot
-
-        if plot_kwargs_cb is None:
-            def plot_kwargs_cb(idx, labels=None):
-                kwargs = {'ls': ls[idx % len(ls)],
-                          'c': c[idx % len(c)]}
-                if labels:
-                    kwargs['label'] = labels[idx]
-                return kwargs
-        else:
-            plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
-        for idx in range(xres.shape[1]):
-            plot(varied_data, xres[:, idx], **plot_kwargs_cb(
-                idx, labels=labels or getattr(self, 'names', None)))
-
-        if fail_vline:
-            if ax is None:
-                from matplotlib.pyplot import axvline
-            else:
-                axvline = ax.axvline
-            for i, sol in enumerate(sols):
-                if not sol['success']:
-                    axvline(varied_data[i], c='k', ls='--')
-
-    def plot_series_residuals(self, xres, varied_data, varied_idx, params,
-                              **kwargs):
-        xerr = np.empty((xres.shape[0], self.nf))
-        new_params = np.array(params)
-        for idx, row in enumerate(xres):
-            new_params[varied_idx] = varied_data[idx]
-            xerr[idx, :] = self.f_callback(*self.pre_process(row, params))
-        self.plot_series(xerr, varied_data, labels=False, **kwargs)
-
-    def plot_series_residuals_internal(self, varied_data, varied_idx,
-                                       **kwargs):
-        xerr = np.empty((self.internal_xout.shape[0], self.nf))
-        for idx, (res, params) in enumerate(zip(self.internal_xout,
-                                                self.internal_params_out)):
-            xerr[idx, :] = self.f_callback(res, params)
-        self.plot_series(xerr, varied_data, labels=False, **kwargs)
-
-    def solve_and_plot_series(self, solver, x0, params, varied_data,
-                              varied_idx,
-                              plot_series_ax=None,
-                              plot_series_residuals_ax=None,
-                              solve_kwargs=None,
-                              plot_series_kwargs=None,
-                              plot_series_residuals_kwargs=None):
-        """ Solve and plot for a series of a varied parameter """
-        xres, sols = self.solve_series(solver, x0, params, varied_data,
-                                       varied_idx, **(solve_kwargs or {}))
-        self.plot_series(xres, varied_data, sols=sols, ax=plot_series_ax,
-                         **(plot_series_kwargs or {}))
-        if plot_series_residuals_ax is not None:
-            self.plot_series_residuals_internal(
-                varied_data, varied_idx, sols=sols,
-                ax=plot_series_residuals_ax,
-                **(plot_series_residuals_kwargs or {})
-            )
-        return xres, sols
-
 
 class _MultiNeqSys(_NeqSysBase):
 
@@ -316,7 +300,11 @@ class ConditionalNeqSys(_MultiNeqSys):
     callbacks, one for evaluating when the condition was previously False,
     and one when it was previously False. The motivation for this asymmetry
     is that a user may want to introduce a tolerance for numerical noise in
-    the solution (and avoid possibly infinte recursion)
+    the solution (and avoid possibly infinte recursion).
+
+    If ``fastcache`` is available an LRU cache will be used for
+    ``neqsys_factory``, it is therefore important that the function is
+    idempotent.
 
     Parameters
     ----------
@@ -355,9 +343,10 @@ class ConditionalNeqSys(_MultiNeqSys):
 
     """
 
-    def __init__(self, conditions, neqsys_factory):
+    def __init__(self, conditions, neqsys_factory, names=None):
         self.conditions = conditions
-        self.neqsys_factory = neqsys_factory
+        self.neqsys_factory = clru_cache(LRU_CACHE_SIZE)(neqsys_factory)
+        self.names = names
 
     def solve(self, solver, x0, params=(), conditional_maxiter=20, **kwargs):
         """ Solve the problem (systems of equations) """
@@ -376,6 +365,8 @@ class ConditionalNeqSys(_MultiNeqSys):
         if idx == conditional_maxiter:
             raise Exception("Solving failed, conditional_maxiter reached")
         # print('conditional iter:', idx)#debugging
+        self.internal_x = x0
+        self.internal_params = params
         return x0, sol
 
 
@@ -401,9 +392,10 @@ class ChainedNeqSys(_MultiNeqSys):
 
     """
 
-    def __init__(self, neqsystems, save_sols=False):
+    def __init__(self, neqsystems, save_sols=False, names=None):
         self.neqsystems = neqsystems
         self.save_sols = save_sols
+        self.names = names
 
     def solve(self, solver, x0, params=(), **kwargs):
         if self.save_sols:
@@ -416,4 +408,6 @@ class ChainedNeqSys(_MultiNeqSys):
             # print(idx, x0)##DEBUG
             if self.save_sols:
                 self.last_solve_sols.append(sol)
+        self.internal_x = x0
+        self.internal_params = params
         return x0, {'sol_vecs': sol_vecs, 'success': sol['success']}
