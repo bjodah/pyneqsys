@@ -39,12 +39,14 @@ def _ensure_2args(func):
 class _NeqSysBase(object):
 
     def _get_solver_cb(self, solver):
+        if callable(solver):
+            return solver
         if solver is None:
             solver = os.environ.get('PYNEQSYS_SOLVER', 'scipy')
-        return getattr(self, 'solve_' + solver)
+        return getattr(self, '_solve_' + solver)
 
     def _solve_series(self, solver_cb, x0, params, varied_data, varied_idx,
-                      **kwargs):
+                      internal_x0=None, **kwargs):
         new_params = np.atleast_1d(np.array(params, dtype=np.float64))
         xout = np.empty((len(varied_data), len(x0)))
         self.internal_xout = np.empty_like(xout)
@@ -57,12 +59,15 @@ class _NeqSysBase(object):
                 new_params[varied_idx] = value
             except TypeError:
                 new_params = value  # e.g. type(new_params) == int
-            x, sol = solver_cb(new_x0, new_params, **kwargs)
-            try:
-                new_x0 = sol['sol_vecs'][0]  # See ChainedNeqSys.solve
-            except:
-                if sol['success']:
+            x, sol = self.solve(solver_cb, new_x0, new_params, internal_x0,
+                                **kwargs)
+            if sol['success']:
+                try:
+                    new_x0 = sol['sol_vecs'][0]  # See ChainedNeqSys.solve
+                    internal_x0 = sol['internal_x_vecs'][0]
+                except:
                     new_x0 = x
+                    internal_x0 = None
             xout[idx, :] = x
             self.internal_xout[idx, :] = self.internal_x
             self.internal_params_out[idx, :] = self.internal_params
@@ -186,17 +191,29 @@ class NeqSys(_NeqSysBase):
             xout, params_out = post_processor(xout, params_out)
         return xout, params_out
 
-    def solve(self, solver, *args, **kwargs):
+    def solve(self, solver, x0, params=(), internal_x0=None, **kwargs):
         """
         Solve with ``solver``. Convenience method.
 
         Parameters
         ----------
         solver: str or None
-            if str: returns solve_``solver``(\*args, \*\*kwargs)
+            if str: uses _solve_``solver``(\*args, \*\*kwargs)
             if ``None``: chooses from PYNEQSYS_SOLVER environment variable
+        x0: 1D array of floats
+            Guess (subject to ``self.post_processors``)
+        params: 1D array_like of floats (default: ())
+            Parameters (subject to ``self.post_processors``)
+        internal_x0: 1D array of floats (default: None)
+            When given it overrides (processed) ``x0``. ``internal_x0`` is not
+            subject to ``self.post_processors``.
         """
-        return self._get_solver_cb(solver)(*args, **kwargs)
+        intern_x0, self.internal_params = self.pre_process(x0, params)
+        if internal_x0 is not None:
+            intern_x0 = internal_x0
+        self.internal_x, sol = self._get_solver_cb(solver)(intern_x0, **kwargs)
+        return self.post_process(self.internal_x,
+                                 self.internal_params)[:1] + (sol,)
 
     def solve_series(self, solver, x0, params, varied_data, varied_idx,
                      **kwargs):
@@ -205,7 +222,7 @@ class NeqSys(_NeqSysBase):
                                   x0, params, varied_data, varied_idx,
                                   **kwargs)
 
-    def solve_scipy(self, x0, params=(), tol=1e-8, method=None, **kwargs):
+    def _solve_scipy(self, intern_x0, tol=1e-8, method=None, **kwargs):
         """
         Use ``scipy.optimize.root``
         see: http://docs.scipy.org/doc/scipy/reference/\
@@ -213,10 +230,8 @@ generated/scipy.optimize.root.html
 
         Parameters
         ----------
-        x0: array_like
+        intern_x0: array_like
             initial guess
-        params: array_like (default: None)
-            (Optional) parameters of type float64
         tol: float
             Tolerance
         method: str (default: None)
@@ -242,8 +257,6 @@ generated/scipy.optimize.root.html
         if 'args' in kwargs:
             raise ValueError("Set 'args' as params in initialization instead.")
 
-        intern_x0, self.internal_params = self.pre_process(x0, params)
-
         new_kwargs = kwargs.copy()
         if self.band is not None:
             warnings.warn("Band argument ignored (see SciPy docs)")
@@ -254,14 +267,11 @@ generated/scipy.optimize.root.html
         sol = root(self.f_callback, intern_x0,
                    jac=self.j_callback, method=method, tol=tol,
                    **new_kwargs)
-        self.internal_x = sol.x
-        return self.post_process(sol.x, self.internal_params)[:1] + (sol,)
+        return sol.x, sol
 
-    def solve_nleq2(self, x0, params=(), tol=1e-8, method=None, **kwargs):
+    def _solve_nleq2(self, intern_x0, tol=1e-8, method=None, **kwargs):
         """ Provisional, subject to unnotified API breaks """
         from pynleq2 import solve
-
-        intern_x0, self.internal_params = self.pre_process(x0, params)
 
         def f(x, ierr):
             return self.f_callback(x[:self.nx], x[self.nx:])
@@ -272,7 +282,8 @@ generated/scipy.optimize.root.html
             **kwargs
         )
         self.internal_x = x
-        return self.post_process(x, self.internal_params)[:1] + (ierr,)
+        return self.post_process(x, self.internal_params)[:1] + (
+            {'ierr': ierr},)
 
 
 class _MultiNeqSys(_NeqSysBase):
@@ -367,7 +378,7 @@ class ConditionalNeqSys(_MultiNeqSys):
         # print('conditional iter:', idx)#debugging
         self.internal_x = x0
         self.internal_params = params
-        return x0, sol
+        return x0, {'success': sol['success'], 'conditions': conds}
 
 
 class ChainedNeqSys(_MultiNeqSys):
@@ -402,12 +413,18 @@ class ChainedNeqSys(_MultiNeqSys):
             self.last_solve_sols = []
         # print('x0', x0)##DEBUG
         sol_vecs = []
+        internal_x_vecs = []
         for idx, neqsys in enumerate(self.neqsystems):
             x0, sol = neqsys.solve(solver, x0, params, **kwargs)
             sol_vecs.append(x0)
+            internal_x_vecs.append(neqsys.internal_x)
             # print(idx, x0)##DEBUG
             if self.save_sols:
                 self.last_solve_sols.append(sol)
         self.internal_x = x0
         self.internal_params = params
-        return x0, {'sol_vecs': sol_vecs, 'success': sol['success']}
+        info_dict = {'success': sol['success']}
+        if self.save_sols:
+            info_dict['sol_vecs'] = sol_vecs
+            info_dict['internal_x_vecs'] = internal_x_vecs
+        return x0, info_dict

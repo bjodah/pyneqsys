@@ -14,7 +14,7 @@ def test_SymbolicSys():
     def f(x):
         return 1/(x+a)**t + b
     neqsys = SymbolicSys([a, b], [f(0) - 1, f(1) - 0], [t])
-    ab, sol = neqsys.solve_scipy([0.5, -0.5], 1)
+    ab, sol = neqsys.solve('scipy', [0.5, -0.5], 1)
     assert sol['success']
     assert abs(ab[0] - (-1/2 + 5**0.5/2)) < 1e-10
     assert abs(ab[1] - (1/2 - 5**0.5/2)) < 1e-10
@@ -22,7 +22,7 @@ def test_SymbolicSys():
 
 def test_symbolicsys__from_callback():
     ss = SymbolicSys.from_callback(f, 2, 1)
-    x, sol = ss.solve_scipy([1, 0], [3])
+    x, sol = ss.solve('scipy', [1, 0], [3])
     assert sol['success']
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
@@ -33,7 +33,7 @@ def test_symbolicsys__from_callback__no_params():
         return f(x, [3])
 
     ss = SymbolicSys.from_callback(_nf, 2)
-    x, sol = ss.solve_scipy([.7, .3])
+    x, sol = ss.solve('scipy', [.7, .3])
     assert sol['success']
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7

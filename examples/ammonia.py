@@ -14,7 +14,7 @@ from pyneqsys.symbolic import linear_exprs
 def main(init_conc='1e-7,1e-7,1e-7,1,55.5',
          lnKa=-21.28, lnKw=-36.25,
          savetxt='None', verbose=False,
-         rref=False, charge=False):
+         rref=False, charge=False, solver='scipy'):
     # H+, OH- NH4+, NH3, H2O
     iHp, iOHm, iNH4p, iNH3, iH2O = init_conc = map(float, init_conc.split(','))
     lHp, lOHm, lNH4p, lNH3, lH2O = x = sp.symarray('x', 5)
@@ -34,7 +34,7 @@ def main(init_conc='1e-7,1e-7,1e-7,1,55.5',
         f += [Hp - OHm + NH4p - (iHp - iOHm + iNH4p)]
 
     neqsys = SymbolicSys(x, f)
-    x, sol = neqsys.solve_scipy([0]*5)
+    x, sol = neqsys.solve(solver, [0]*5)
     if verbose:
         print(np.exp(x), sol)
     else:
