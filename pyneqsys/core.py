@@ -3,9 +3,27 @@
 from __future__ import absolute_import, division, print_function
 
 import inspect
+import os
 import warnings
 
 import numpy as np
+
+from .plotting import plot_series
+
+LRU_CACHE_SIZE = os.environ.get('PYNEQSYS_LRU_CACHE_SIZE', 256)
+
+try:
+    from fastcache import clru_cache
+except ImportError:
+    warnings.warn("Could not import 'fastcache' (look in PyPI), "
+                  "solving of ConditionalNeqSys may be slower.")
+
+    class clru_cache:
+        def __init__(*args, **kwargs):
+            pass
+
+        def __call__(self, fun):
+            return fun
 
 
 def _ensure_2args(func):
@@ -18,25 +36,88 @@ def _ensure_2args(func):
         return func
 
 
-def _solve_series(solve, x0, params, var_data, var_idx, **kwargs):
-    xout = np.empty((len(var_data), len(x0)))
-    sols = []
-    new_x0 = np.array(x0, dtype=np.float64)
-    new_params = np.atleast_1d(np.array(params, dtype=np.float64))
-    for idx, value in enumerate(var_data):
-        try:
-            new_params[var_idx] = value
-        except TypeError:
-            new_params = value  # e.g. type(new_params) == int
-        x, sol = solve(new_x0, new_params, **kwargs)
-        if sol.success:
-            new_x0 = x
-        xout[idx, :] = x
-        sols.append(sol)
-    return xout, sols
+class _NeqSysBase(object):
+
+    def _get_solver_cb(self, solver):
+        if callable(solver):
+            return solver
+        if solver is None:
+            solver = os.environ.get('PYNEQSYS_SOLVER', 'scipy')
+        return getattr(self, '_solve_' + solver)
+
+    def solve_series(self, solver, x0, params, varied_data, varied_idx,
+                     internal_x0=None, **kwargs):
+        new_params = np.atleast_1d(np.array(params, dtype=np.float64))
+        xout = np.empty((len(varied_data), len(x0)))
+        self.internal_xout = np.empty_like(xout)
+        self.internal_params_out = np.empty((len(varied_data),
+                                             len(new_params)))
+        sols = []
+        new_x0 = np.array(x0, dtype=np.float64)
+        for idx, value in enumerate(varied_data):
+            try:
+                new_params[varied_idx] = value
+            except TypeError:
+                new_params = value  # e.g. type(new_params) == int
+            x, sol = self.solve(solver, new_x0, new_params, internal_x0,
+                                **kwargs)
+            if sol['success']:
+                try:
+                    new_x0 = sol['sol_vecs'][0]  # See ChainedNeqSys.solve
+                    internal_x0 = sol['internal_x_vecs'][0]
+                except:
+                    new_x0 = x
+                    internal_x0 = None
+            xout[idx, :] = x
+            self.internal_xout[idx, :] = self.internal_x
+            self.internal_params_out[idx, :] = self.internal_params
+            sols.append(sol)
+        return xout, sols
+
+    def plot_series(self, *args, **kwargs):
+        if kwargs.get('labels') is None:
+            kwargs['labels'] = getattr(self, 'names', None)
+        plot_series(*args, **kwargs)
+
+    def plot_series_residuals(self, xres, varied_data, varied_idx, params,
+                              **kwargs):
+        xerr = np.empty((xres.shape[0], self.nf))
+        new_params = np.array(params)
+        for idx, row in enumerate(xres):
+            new_params[varied_idx] = varied_data[idx]
+            xerr[idx, :] = self.f_callback(*self.pre_process(row, params))
+        self.plot_series(xerr, varied_data, labels=False, **kwargs)
+
+    def plot_series_residuals_internal(self, varied_data, varied_idx,
+                                       **kwargs):
+        xerr = np.empty((self.internal_xout.shape[0], self.nf))
+        for idx, (res, params) in enumerate(zip(self.internal_xout,
+                                                self.internal_params_out)):
+            xerr[idx, :] = self.f_callback(res, params)
+        self.plot_series(xerr, varied_data, labels=False, **kwargs)
+
+    def solve_and_plot_series(self, solver, x0, params, varied_data,
+                              varied_idx,
+                              plot_series_ax=None,
+                              plot_series_residuals_ax=None,
+                              plot_series_kwargs=None,
+                              plot_series_residuals_kwargs=None,
+                              **kwargs):
+        """ Solve and plot for a series of a varied parameter """
+        xres, sols = self.solve_series(solver, x0, params, varied_data,
+                                       varied_idx, **kwargs)
+        self.plot_series(xres, varied_data, sols=sols, ax=plot_series_ax,
+                         **(plot_series_kwargs or {}))
+        if plot_series_residuals_ax is not None:
+            self.plot_series_residuals_internal(
+                varied_data, varied_idx, sols=sols,
+                ax=plot_series_residuals_ax,
+                **(plot_series_residuals_kwargs or {})
+            )
+        return xres, sols
 
 
-class NeqSys(object):
+class NeqSys(_NeqSysBase):
     """Represent a system of non-linear equations
 
     Object representing nonlinear equation system.
@@ -74,7 +155,7 @@ class NeqSys(object):
     >>> neqsys = NeqSys(2, 2, lambda x, p: [(x[0] - x[1])**p[0]/2 + x[0] - 1,
     ...                                     (x[1] - x[0])**p[0]/2 + x[1]])
     >>> x, sol = neqsys.solve('scipy', [1, 0], [3])
-    >>> assert sol.success
+    >>> assert sol['success']
     >>> print(x)
     [ 0.8411639  0.1588361]
 
@@ -110,18 +191,31 @@ class NeqSys(object):
             xout, params_out = post_processor(xout, params_out)
         return xout, params_out
 
-    def solve(self, solver, *args, **kwargs):
+    def solve(self, solver, x0, params=(), internal_x0=None, **kwargs):
         """
         Solve with ``solver``. Convenience method.
+
+        Parameters
+        ----------
+        solver: str or None
+            if str: uses _solve_``solver``(\*args, \*\*kwargs)
+            if ``None``: chooses from PYNEQSYS_SOLVER environment variable
+        x0: 1D array of floats
+            Guess (subject to ``self.post_processors``)
+        params: 1D array_like of floats (default: ())
+            Parameters (subject to ``self.post_processors``)
+        internal_x0: 1D array of floats (default: None)
+            When given it overrides (processed) ``x0``. ``internal_x0`` is not
+            subject to ``self.post_processors``.
         """
-        return getattr(self, 'solve_'+solver)(*args, **kwargs)
+        intern_x0, self.internal_params = self.pre_process(x0, params)
+        if internal_x0 is not None:
+            intern_x0 = internal_x0
+        self.internal_x, sol = self._get_solver_cb(solver)(intern_x0, **kwargs)
+        return self.post_process(self.internal_x,
+                                 self.internal_params)[:1] + (sol,)
 
-    def solve_series(self, solver, x0, params, var_data, var_idx, **kwargs):
-        """ Solve for a series of values of a parameter """
-        return _solve_series(getattr(self, 'solve_'+solver),
-                             x0, params, var_data, var_idx, **kwargs)
-
-    def solve_scipy(self, x0, params=(), tol=1e-8, method=None, **kwargs):
+    def _solve_scipy(self, intern_x0, tol=1e-8, method=None, **kwargs):
         """
         Use ``scipy.optimize.root``
         see: http://docs.scipy.org/doc/scipy/reference/\
@@ -129,10 +223,8 @@ generated/scipy.optimize.root.html
 
         Parameters
         ----------
-        x0: array_like
+        intern_x0: array_like
             initial guess
-        params: array_like (default: None)
-            (Optional) parameters of type float64
         tol: float
             Tolerance
         method: str (default: None)
@@ -143,6 +235,7 @@ generated/scipy.optimize.root.html
         Length 2 tuple:
            - solution (array of length self.nx)
            - additional output from solver
+
         """
         from scipy.optimize import root
         if method is None:
@@ -157,8 +250,6 @@ generated/scipy.optimize.root.html
         if 'args' in kwargs:
             raise ValueError("Set 'args' as params in initialization instead.")
 
-        intern_x0, self.internal_params = self.pre_process(x0, params)
-
         new_kwargs = kwargs.copy()
         if self.band is not None:
             warnings.warn("Band argument ignored (see SciPy docs)")
@@ -169,14 +260,11 @@ generated/scipy.optimize.root.html
         sol = root(self.f_callback, intern_x0,
                    jac=self.j_callback, method=method, tol=tol,
                    **new_kwargs)
+        return sol.x, sol
 
-        return self.post_process(sol.x, self.internal_params)[:1] + (sol,)
-
-    def solve_nleq2(self, x0, params=(), tol=1e-8, method=None, **kwargs):
+    def _solve_nleq2(self, intern_x0, tol=1e-8, method=None, **kwargs):
         """ Provisional, subject to unnotified API breaks """
         from pynleq2 import solve
-
-        intern_x0, self.internal_params = self.pre_process(x0, params)
 
         def f(x, ierr):
             return self.f_callback(x[:self.nx], x[self.nx:])
@@ -186,30 +274,12 @@ generated/scipy.optimize.root.html
             intern_x0,
             **kwargs
         )
-        return self.post_process(x, self.internal_params)[:1] + (ierr,)
-
-    def plot_series(self, idx_varied, varied_data, xres, sols=None, plot=None,
-                    plot_kwargs_cb=None, ls=('-', '--', ':', '-.'),
-                    c=('k', 'r', 'g', 'b', 'c', 'm', 'y')):
-        """ Plot the values of the solution vector vs the varied parameter """
-        if plot is None:
-            from matplotlib.pyplot import plot
-        if plot_kwargs_cb is None:
-            names = getattr(self, 'names', None)
-
-            def plot_kwargs_cb(idx):
-                kwargs = {'ls': ls[idx % len(ls)],
-                          'c': c[idx % len(c)]}
-                if names:
-                    kwargs['label'] = names[idx]
-                return kwargs
-        else:
-            plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
-        for idx in range(xres.shape[1]):
-            plot(varied_data, xres[:, idx], **plot_kwargs_cb(idx))
+        self.internal_x = x
+        return self.post_process(x, self.internal_params)[:1] + (
+            {'ierr': ierr},)
 
 
-class ConditionalNeqSys(object):
+class ConditionalNeqSys(_NeqSysBase):
     """ Collect multiple systems of non-linear equations with different
     conditionals.
 
@@ -224,7 +294,11 @@ class ConditionalNeqSys(object):
     callbacks, one for evaluating when the condition was previously False,
     and one when it was previously False. The motivation for this asymmetry
     is that a user may want to introduce a tolerance for numerical noise in
-    the solution (and avoid possibly infinte recursion)
+    the solution (and avoid possibly infinite recursion).
+
+    If ``fastcache`` is available an LRU cache will be used for
+    ``neqsys_factory``, it is therefore important that the function is
+    idempotent.
 
     Parameters
     ----------
@@ -245,35 +319,38 @@ class ConditionalNeqSys(object):
     ...                               lambda x, p: x[0] >= 0)],  # no 0-switch
     ...                             factory)
     >>> x, sol = cneqsys.solve('scipy', [0], [pi, 3])
-    >>> assert sol.success
+    >>> assert sol['success']
     >>> print(x)
     [ 0.]
     >>> x, sol = cneqsys.solve('scipy', [-1.4], [pi, 3])
-    >>> assert sol.success
+    >>> assert sol['success']
     >>> print(x)
     [-1.]
     >>> x, sol = cneqsys.solve('scipy', [2], [pi, 3])
-    >>> assert sol.success
+    >>> assert sol['success']
     >>> print(x)
     [ 3.]
     >>> x, sol = cneqsys.solve('scipy', [7], [pi, 3])
-    >>> assert sol.success
+    >>> assert sol['success']
     >>> print(x)
     [ 3.]
 
     """
 
-    def __init__(self, conditions, neqsys_factory):
+    def __init__(self, conditions, neqsys_factory, names=None):
         self.conditions = conditions
-        self.neqsys_factory = neqsys_factory
+        self.neqsys_factory = clru_cache(LRU_CACHE_SIZE)(neqsys_factory)
+        self.names = names
 
-    def solve(self, solver, x0, params, conditional_maxiter=15, **kwargs):
+    def solve(self, solver, x0, params=(), internal_x0=None,
+              conditional_maxiter=20, **kwargs):
         """ Solve the problem (systems of equations) """
         conds = tuple([fw(x0, params) for fw, bw in self.conditions])
         idx = 0
         while idx < conditional_maxiter:
             neqsys = self.neqsys_factory(conds)
-            x0, sol = neqsys.solve(solver, x0, params, **kwargs)
+            x0, sol = neqsys.solve(solver, x0, params, internal_x0, **kwargs)
+            internal_x0 = None
             nconds = tuple([bw(x0, params) if prev else fw(x0, params)
                             for prev, (fw, bw) in zip(conds, self.conditions)])
             if nconds == conds:
@@ -283,9 +360,57 @@ class ConditionalNeqSys(object):
             idx += 1
         if idx == conditional_maxiter:
             raise Exception("Solving failed, conditional_maxiter reached")
-        return x0, sol
+        # print('conditional iter:', idx)#debugging
+        self.internal_x = x0
+        self.internal_params = params
+        return x0, {'success': sol['success'], 'conditions': conds}
 
-    def solve_series(self, solver, x0, params, var_data, var_idx, **kwargs):
-        """ Solve for a series of values of a parameter """
-        return _solve_series(lambda x, p, **kw: self.solve(solver, x, p, **kw),
-                             x0, params, var_data, var_idx, **kwargs)
+
+class ChainedNeqSys(_NeqSysBase):
+    """ Chain multiple formulations of non-linear systems for using
+    the result of one as starting guess for the other
+
+    Examples
+    --------
+    >>> neqsys_lin = NeqSys(1, 1, lambda x, p: [x[0]**2 - p[0]])
+    >>> from math import log, exp
+    >>> neqsys_log = NeqSys(1, 1, lambda x, p: [2*x[0] - log(p[0])],
+    ...    pre_processors=[lambda x, p: ([log(x[0]+1e-60)], p)],
+    ...    post_processors=[lambda x, p: ([exp(x[0])], p)])
+    >>> chained = ChainedNeqSys([neqsys_log, neqsys_lin], save_sols=True)
+    >>> x, sol = chained.solve('scipy', [1, 1], [4])
+    >>> assert sol['success']
+    >>> print(x)
+    [ 2.]
+    >>> print(chained.last_solve_sols[0].nfev,
+    ...       chained.last_solve_sols[1].nfev)  # doctest: +SKIP
+    4 3
+
+    """
+
+    def __init__(self, neqsystems, save_sols=False, names=None):
+        self.neqsystems = neqsystems
+        self.save_sols = save_sols
+        self.names = names
+
+    def solve(self, solver, x0, params=(), internal_x0=None, **kwargs):
+        if self.save_sols:
+            self.last_solve_sols = []
+        # print('x0', x0)##DEBUG
+        sol_vecs = []
+        internal_x_vecs = []
+        for idx, neqsys in enumerate(self.neqsystems):
+            x0, sol = neqsys.solve(solver, x0, params, internal_x0, **kwargs)
+            internal_x0 = None
+            sol_vecs.append(x0)
+            internal_x_vecs.append(neqsys.internal_x)
+            # print(idx, x0)##DEBUG
+            if self.save_sols:
+                self.last_solve_sols.append(sol)
+        self.internal_x = x0
+        self.internal_params = params
+        info_dict = {'success': sol['success']}
+        if self.save_sols:
+            info_dict['sol_vecs'] = sol_vecs
+            info_dict['internal_x_vecs'] = internal_x_vecs
+        return x0, info_dict

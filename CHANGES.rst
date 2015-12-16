@@ -1,3 +1,12 @@
+v0.3.0
+======
+- NeqSys.solve() refactored
+- NeqSys.solve_scipy and NeqSys.solve_nleq2 was made private
+- Added ChainedNeqSys
+- In NeqSys.solve() arg "solver" may now be None -> $NEQSYS_SOLVER
+- NeqSys.plot_series changed signature
+- New methods: NeqSys.plot_series_residuals(_internal)
+
 v0.2.1
 ======
 - Fixed bug in SymbolicSys jacobian evaluation.
