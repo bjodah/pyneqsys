@@ -45,8 +45,8 @@ class _NeqSysBase(object):
             solver = os.environ.get('PYNEQSYS_SOLVER', 'scipy')
         return getattr(self, '_solve_' + solver)
 
-    def _solve_series(self, solver_cb, x0, params, varied_data, varied_idx,
-                      internal_x0=None, **kwargs):
+    def solve_series(self, solver, x0, params, varied_data, varied_idx,
+                     internal_x0=None, **kwargs):
         new_params = np.atleast_1d(np.array(params, dtype=np.float64))
         xout = np.empty((len(varied_data), len(x0)))
         self.internal_xout = np.empty_like(xout)
@@ -59,7 +59,7 @@ class _NeqSysBase(object):
                 new_params[varied_idx] = value
             except TypeError:
                 new_params = value  # e.g. type(new_params) == int
-            x, sol = self.solve(solver_cb, new_x0, new_params, internal_x0,
+            x, sol = self.solve(solver, new_x0, new_params, internal_x0,
                                 **kwargs)
             if sol['success']:
                 try:
@@ -215,13 +215,6 @@ class NeqSys(_NeqSysBase):
         return self.post_process(self.internal_x,
                                  self.internal_params)[:1] + (sol,)
 
-    def solve_series(self, solver, x0, params, varied_data, varied_idx,
-                     **kwargs):
-        """ Solve for a series of values of a parameter """
-        return self._solve_series(self._get_solver_cb(solver),
-                                  x0, params, varied_data, varied_idx,
-                                  **kwargs)
-
     def _solve_scipy(self, intern_x0, tol=1e-8, method=None, **kwargs):
         """
         Use ``scipy.optimize.root``
@@ -286,17 +279,7 @@ generated/scipy.optimize.root.html
             {'ierr': ierr},)
 
 
-class _MultiNeqSys(_NeqSysBase):
-
-    def solve_series(self, solver, x0, params, varied_data, varied_idx,
-                     **kwargs):
-        """ Solve for a series of values of a parameter """
-        return self._solve_series(
-            lambda x, p, **kw: self.solve(solver, x, p, **kw),
-            x0, params, varied_data, varied_idx, **kwargs)
-
-
-class ConditionalNeqSys(_MultiNeqSys):
+class ConditionalNeqSys(_NeqSysBase):
     """ Collect multiple systems of non-linear equations with different
     conditionals.
 
@@ -311,7 +294,7 @@ class ConditionalNeqSys(_MultiNeqSys):
     callbacks, one for evaluating when the condition was previously False,
     and one when it was previously False. The motivation for this asymmetry
     is that a user may want to introduce a tolerance for numerical noise in
-    the solution (and avoid possibly infinte recursion).
+    the solution (and avoid possibly infinite recursion).
 
     If ``fastcache`` is available an LRU cache will be used for
     ``neqsys_factory``, it is therefore important that the function is
@@ -359,13 +342,15 @@ class ConditionalNeqSys(_MultiNeqSys):
         self.neqsys_factory = clru_cache(LRU_CACHE_SIZE)(neqsys_factory)
         self.names = names
 
-    def solve(self, solver, x0, params=(), conditional_maxiter=20, **kwargs):
+    def solve(self, solver, x0, params=(), internal_x0=None,
+              conditional_maxiter=20, **kwargs):
         """ Solve the problem (systems of equations) """
         conds = tuple([fw(x0, params) for fw, bw in self.conditions])
         idx = 0
         while idx < conditional_maxiter:
             neqsys = self.neqsys_factory(conds)
-            x0, sol = neqsys.solve(solver, x0, params, **kwargs)
+            x0, sol = neqsys.solve(solver, x0, params, internal_x0, **kwargs)
+            internal_x0 = None
             nconds = tuple([bw(x0, params) if prev else fw(x0, params)
                             for prev, (fw, bw) in zip(conds, self.conditions)])
             if nconds == conds:
@@ -381,7 +366,7 @@ class ConditionalNeqSys(_MultiNeqSys):
         return x0, {'success': sol['success'], 'conditions': conds}
 
 
-class ChainedNeqSys(_MultiNeqSys):
+class ChainedNeqSys(_NeqSysBase):
     """ Chain multiple formulations of non-linear systems for using
     the result of one as starting guess for the other
 
@@ -408,14 +393,15 @@ class ChainedNeqSys(_MultiNeqSys):
         self.save_sols = save_sols
         self.names = names
 
-    def solve(self, solver, x0, params=(), **kwargs):
+    def solve(self, solver, x0, params=(), internal_x0=None, **kwargs):
         if self.save_sols:
             self.last_solve_sols = []
         # print('x0', x0)##DEBUG
         sol_vecs = []
         internal_x_vecs = []
         for idx, neqsys in enumerate(self.neqsystems):
-            x0, sol = neqsys.solve(solver, x0, params, **kwargs)
+            x0, sol = neqsys.solve(solver, x0, params, internal_x0, **kwargs)
+            internal_x0 = None
             sol_vecs.append(x0)
             internal_x_vecs.append(neqsys.internal_x)
             # print(idx, x0)##DEBUG
