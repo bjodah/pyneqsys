@@ -377,6 +377,11 @@ class ConditionalNeqSys(_NeqSysBase):
             conds = self.get_conds(x, params)
         return self.neqsys_factory(conds).post_process(x, params)
 
+    def pre_process(self, x, params, conds=None):
+        if conds is None:
+            conds = self.get_conds(x, params)
+        return self.neqsys_factory(conds).pre_process(x, params)
+
 
 class ChainedNeqSys(_NeqSysBase):
     """ Chain multiple formulations of non-linear systems for using
@@ -423,7 +428,16 @@ class ChainedNeqSys(_NeqSysBase):
         self.internal_x = x0
         self.internal_params = params
         info_dict = {'success': sol['success']}
-        if self.save_sols:
-            info_dict['sol_vecs'] = sol_vecs
-            info_dict['internal_x_vecs'] = internal_x_vecs
+        info_dict['sol_vecs'] = sol_vecs
+        info_dict['internal_x_vecs'] = internal_x_vecs
         return x0, info_dict
+
+    @classmethod
+    def from_callback(cls, NeqSys_vec, *args, **kwargs):
+        return cls([NS.from_callback(*args, **kwargs) for NS in NeqSys_vec])
+
+    def post_process(self, x, params):
+        return self.neqsystems[0].post_process(x, params)  # outermost
+
+    def pre_process(self, x, params, conds=None):
+        return self.neqsystems[0].pre_process(x, params)  # outermost
