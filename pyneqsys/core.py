@@ -302,7 +302,7 @@ class ConditionalNeqSys(_NeqSysBase):
 
     Parameters
     ----------
-    conditions: list of (callback, callback) tuples
+    condition_cb_pairs: list of (callback, callback) tuples
         callbacks should have the signature: f(x, p) -> bool
     neqsys_factory: callback
         should have the signature f(conds) -> NeqSys instance
@@ -337,22 +337,29 @@ class ConditionalNeqSys(_NeqSysBase):
 
     """
 
-    def __init__(self, conditions, neqsys_factory, names=None):
-        self.conditions = conditions
+    def __init__(self, condition_cb_pairs, neqsys_factory, names=None):
+        self.condition_cb_pairs = condition_cb_pairs
         self.neqsys_factory = clru_cache(LRU_CACHE_SIZE)(neqsys_factory)
         self.names = names
 
+    def get_conds(self, x, params, prev_conds=None):
+        if prev_conds is None:
+            prev_conds = [False]*len(self.condition_cb_pairs)
+        return tuple([bw(x, params) if prev else fw(x, params)
+                      for prev, (fw, bw) in zip(prev_conds, self.condition_cb_pairs)])
+
     def solve(self, solver, x0, params=(), internal_x0=None,
-              conditional_maxiter=20, **kwargs):
+              conditional_maxiter=20, initial_conditions=None, **kwargs):
         """ Solve the problem (systems of equations) """
-        conds = tuple([fw(x0, params) for fw, bw in self.conditions])
+        conds = self.get_conds(x0, params, initial_conditions)  # DO-NOT-MERGE!
+        if initial_conditions is not None:  # this is one alternative
+            conds = initial_conditions      # (if I keep this: remove above)
         idx = 0
         while idx < conditional_maxiter:
             neqsys = self.neqsys_factory(conds)
             x0, sol = neqsys.solve(solver, x0, params, internal_x0, **kwargs)
             internal_x0 = None
-            nconds = tuple([bw(x0, params) if prev else fw(x0, params)
-                            for prev, (fw, bw) in zip(conds, self.conditions)])
+            nconds = self.get_conds(x0, params, conds)
             if nconds == conds:
                 break
             else:
@@ -364,6 +371,11 @@ class ConditionalNeqSys(_NeqSysBase):
         self.internal_x = x0
         self.internal_params = params
         return x0, {'success': sol['success'], 'conditions': conds}
+
+    def post_process(self, x, params, conds=None):
+        if conds is None:
+            conds = self.get_conds(x, params)
+        return self.neqsys_factory(conds).post_process(x, params)
 
 
 class ChainedNeqSys(_NeqSysBase):
@@ -401,10 +413,11 @@ class ChainedNeqSys(_NeqSysBase):
         internal_x_vecs = []
         for idx, neqsys in enumerate(self.neqsystems):
             x0, sol = neqsys.solve(solver, x0, params, internal_x0, **kwargs)
-            internal_x0 = None
+            internal_x0 = None  # only use for first iteration
+            if 'conditions' in sol:  # see ConditionalNeqSys.solve
+                kwargs['initial_conditions'] = sol['conditions']
             sol_vecs.append(x0)
             internal_x_vecs.append(neqsys.internal_x)
-            # print(idx, x0)##DEBUG
             if self.save_sols:
                 self.last_solve_sols.append(sol)
         self.internal_x = x0
