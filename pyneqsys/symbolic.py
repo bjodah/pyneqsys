@@ -169,20 +169,7 @@ class TransformedSys(SymbolicSys):
         return cls(x, exprs, transf, p, **kwargs)
 
 
-# def chained_from_callbacks(callbacks, nx, nparams=0,
-#                            pre_processors_pack=None,
-#                            post_processors_pack=None,
-#                            SSys=SymbolicSys,
-#                            save_sols=False, **kwargs):
-#     """
-#     Convenience method
-#     """
-#     neqsystems = [SSys.from_callback(cb, nx, nparams, **kwargs)
-#                   for cb in callbacks]
-#     return ChainedNeqSys(neqsystems, save_sols=save_sols)
-
-
-def linear_rref(A, b, Matrix=None):
+def linear_rref(A, b, Matrix=None, S=None):
     """ Transform a linear system to reduced row-echelon form
 
     Transforms both the matrix and right-hand side of a linear
@@ -200,7 +187,10 @@ def linear_rref(A, b, Matrix=None):
     """
     if Matrix is None:
         from sympy import Matrix
-    aug = Matrix([list(row) + [v] for row, v in zip(A, b)])
+    if S is None:
+        from sympy import S
+    mat_rows = [list(map(S, list(row) + [v])) for row, v in zip(A, b)]
+    aug = Matrix(mat_rows)
     raug, pivot = aug.rref()
     nindep = len(pivot)
     return raug[:nindep, :-1], raug[:nindep, -1]

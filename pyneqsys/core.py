@@ -40,10 +40,18 @@ class _NeqSysBase(object):
 
     def _get_solver_cb(self, solver):
         if callable(solver):
-            return solver
+            if inspect.ismethod(solver):
+                return solver
+            else:
+                return solver(self)
         if solver is None:
             solver = os.environ.get('PYNEQSYS_SOLVER', 'scipy')
         return getattr(self, '_solve_' + solver)
+
+    def rms(self, x, params=()):
+        internal_x, internal_params = self.pre_process(x, params)
+        f_out = np.asarray(self.f_callback(internal_x.T, internal_params))
+        return np.sqrt(np.mean(f_out**2, axis=0))
 
     def solve_series(self, solver, x0, params, varied_data, varied_idx,
                      internal_x0=None, **kwargs):
@@ -182,7 +190,7 @@ class NeqSys(_NeqSysBase):
         # Should be used by all methods matching "solve_*"
         for pre_processor in self.pre_processors:
             x0, params = pre_processor(x0, params)
-        return x0, params
+        return x0, np.atleast_1d(params)
 
     def post_process(self, xout, params_out):
         """ Used internally for transformation of variables """
@@ -211,7 +219,9 @@ class NeqSys(_NeqSysBase):
         intern_x0, self.internal_params = self.pre_process(x0, params)
         if internal_x0 is not None:
             intern_x0 = internal_x0
-        self.internal_x, sol = self._get_solver_cb(solver)(intern_x0, **kwargs)
+        solver_cb = self._get_solver_cb(solver)
+        self.internal_x, sol = solver_cb(intern_x0, **kwargs)
+        sol['solver_cb'] = solver_cb
         return self.post_process(self.internal_x,
                                  self.internal_params)[:1] + (sol,)
 
@@ -254,8 +264,8 @@ generated/scipy.optimize.root.html
         if self.band is not None:
             warnings.warn("Band argument ignored (see SciPy docs)")
             new_kwargs['band'] = self.band
-        new_kwargs['args'] = np.atleast_1d(np.array(
-            self.internal_params, dtype=np.float64))
+        new_kwargs['args'] = self.internal_params
+        # np.atleast_1d(np.array(self.internal_params, dtype=np.float64))
 
         sol = root(self.f_callback, intern_x0,
                    jac=self.j_callback, method=method, tol=tol,
@@ -274,9 +284,7 @@ generated/scipy.optimize.root.html
             intern_x0,
             **kwargs
         )
-        self.internal_x = x
-        return self.post_process(x, self.internal_params)[:1] + (
-            {'ierr': ierr},)
+        return x, {'success': ierr == 0, 'ierr': ierr}
 
 
 class ConditionalNeqSys(_NeqSysBase):
@@ -346,7 +354,8 @@ class ConditionalNeqSys(_NeqSysBase):
         if prev_conds is None:
             prev_conds = [False]*len(self.condition_cb_pairs)
         return tuple([bw(x, params) if prev else fw(x, params)
-                      for prev, (fw, bw) in zip(prev_conds, self.condition_cb_pairs)])
+                      for prev, (fw, bw) in zip(prev_conds,
+                                                self.condition_cb_pairs)])
 
     def solve(self, solver, x0, params=(), internal_x0=None,
               conditional_maxiter=20, initial_conditions=None, **kwargs):
@@ -367,7 +376,6 @@ class ConditionalNeqSys(_NeqSysBase):
             idx += 1
         if idx == conditional_maxiter:
             raise Exception("Solving failed, conditional_maxiter reached")
-        # print('conditional iter:', idx)#debugging
         self.internal_x = x0
         self.internal_params = params
         return x0, {'success': sol['success'], 'conditions': conds}
@@ -413,10 +421,10 @@ class ChainedNeqSys(_NeqSysBase):
     def solve(self, solver, x0, params=(), internal_x0=None, **kwargs):
         if self.save_sols:
             self.last_solve_sols = []
-        # print('x0', x0)##DEBUG
         sol_vecs = []
         internal_x_vecs = []
         for idx, neqsys in enumerate(self.neqsystems):
+            print('ChainedNeqSys.solve, idx=%d, x0=%s, internal_x0=%s' % (idx, str(x0), str(internal_x0))) ## DEBUG, DO-NOT-MERGE!
             x0, sol = neqsys.solve(solver, x0, params, internal_x0, **kwargs)
             internal_x0 = None  # only use for first iteration
             if 'conditions' in sol:  # see ConditionalNeqSys.solve
