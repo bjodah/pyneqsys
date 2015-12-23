@@ -345,9 +345,10 @@ class ConditionalNeqSys(_NeqSysBase):
 
     """
 
-    def __init__(self, condition_cb_pairs, neqsys_factory, names=None):
+    def __init__(self, condition_cb_pairs, neqsys_factory, nf, names=None):
         self.condition_cb_pairs = condition_cb_pairs
         self.neqsys_factory = clru_cache(LRU_CACHE_SIZE)(neqsys_factory)
+        self.nf = nf
         self.names = names
 
     def get_conds(self, x, params, prev_conds=None):
@@ -389,6 +390,11 @@ class ConditionalNeqSys(_NeqSysBase):
         if conds is None:
             conds = self.get_conds(x, params)
         return self.neqsys_factory(conds).pre_process(x, params)
+
+    def f_callback(self, x, params, conds=None):
+        if conds is None:
+            conds = self.get_conds(x, params)
+        return self.neqsys_factory(conds).f_callback(x, params)
 
 
 class ChainedNeqSys(_NeqSysBase):
