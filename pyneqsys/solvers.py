@@ -17,8 +17,17 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
+def rms(x):
+    return np.sqrt(np.mean(np.asarray(x)**2))
+
 
 class SolverBase:
+
+    def alloc(self):
+        self.history_x = []
+        self.history_dx = []
+        self.history_f = []
+        self.history_rms_f = []
 
     def step(self, x):
         pass
@@ -28,32 +37,29 @@ class SolverBase:
             cur_x = np.array(intern_x0)
             iter_idx = 0
             success = False
-            cb.history_x.append(cur_x.copy())
+            self.history_x.append(cur_x.copy())
             while iter_idx < maxiter:
                 f = np.asarray(self.inst.f_callback(
                     cur_x, self.inst.internal_params))
-                cb.history_f.append(f)
-                rms_f = np.sqrt(np.mean(f**2))
-                cb.history_rms_f.append(rms_f)
+                self.history_f.append(f)
+                rms_f = rms(f)
+                self.history_rms_f.append(rms_f)
 
-                cb.history_dx.append(self.step(cur_x, iter_idx, maxiter))
-                cur_x += cb.history_dx[-1]
-                cb.history_x.append(cur_x.copy())
+                self.history_dx.append(self.step(cur_x, iter_idx, maxiter))
+                cur_x += self.history_dx[-1]
+                self.history_x.append(cur_x.copy())
 
                 iter_idx += 1
                 if rms_f < tol:
                     success = True
                     break
             return cur_x, {'success': success}
-        cb.history_x = []
-        cb.history_dx = []
-        cb.history_f = []
-        cb.history_rms_f = []
+        self.alloc()
         return cb
 
     def _gd_step(self, x):
         J = self.inst.j_callback(x, self.inst.internal_params)
-        return J.dot(self.history_f[-1])
+        return -J.dot(self.history_f[-1])
 
     def __call__(self, inst):
         self.inst = inst
@@ -85,23 +91,42 @@ class GradientDescentSolver(SolverBase):
     def step(self, x, iter_idx, maxiter):
         return self.damping(iter_idx, maxiter) * self._gd_step(x)
 
-
 class PolakRibiereConjugateGradientSolver(SolverBase):
 
-    def __init__(self):
+    def __init__(self, reset_freq=10):
+        self.reset_freq = reset_freq
+
+    def alloc(self):
+        self.history_a = []  # for curiosity
+        self.history_Bn = []  # for curiosity
         self.history_sn = []
+        super(PolakRibiereConjugateGradientSolver, self).alloc()
+
+
+    def line_search(self, x, dx):
+        from scipy.optimize import fminbound
+        return fminbound(lambda a: rms(self.inst.f_callback(
+            x+a*dx, self.inst.internal_params)), 0, 1)
 
     def step(self, x, iter_idx, maxiter):
-        dxn = self._gd_step(x)
-        dx = self.cb.history_dx
-        if iter_idx > 0:
+        dx = self.history_dx
+        sn = self.history_sn
+        if iter_idx in (0, 1) or iter_idx % self.reset_freq == 0:
+            dxn = self._gd_step(x)
+            dxn *= self.line_search(x, dxn)
+            sn.append(x*0)
+        else:
             dx0 = dx[-1]
             dx1 = dx[-2]
             ddx01 = dx0 - dx1
-            Bn = max(0, dx0.dot(ddx01)/dx1.dot(dx1))
-            self.history_sn.append(dx + Bn*sn[-1])
-            a = line_search(lambda a: self.inst.f_callback(
-                x+a*self.history_sn[-1]))
+            Bn = Bn_suggest = dx0.dot(ddx01)/dx1.dot(dx1)
+            # print(Bn_suggest)
+            # Bn = max(0, Bn_suggest)
+            self.history_Bn.append(Bn)  # for curiosity
+            sn.append(dx[-1] + Bn*sn[-1])
+            a = self.line_search(x, sn[-1])
+            self.history_a.append(a)  # for curiosity
+            dxn = a*sn[-1]
         return dxn
 
 
@@ -127,11 +152,11 @@ class AutoDampedGradientDescentSolver(GradientDescentSolver):
 
     def damping(self, iter_idx, mx_iter):
         if iter_idx >= self.nhistory:
-            hist = self.cb.history_rms_f[-self.nhistory:]
+            hist = self.history_rms_f[-self.nhistory:]
             avg = np.mean(hist)
             even = hist[::2]
             odd = hist[1::2]
-            signed_metrix = sum(even-avg) - sum(odd-avg)
+            signed_metric = sum(even-avg) - sum(odd-avg)
             oscillatory_metric = abs(signed_metric)/(avg * self.nhistory)
             self.cur_damp *= (self.tgt_oscill/oscillatory_metric)**self.tgt_pow
         self.history_damping.append(self.cur_damp)

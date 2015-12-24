@@ -19,7 +19,7 @@ except ImportError:
                   "solving of ConditionalNeqSys may be slower.")
 
     class clru_cache:
-        def __init__(*args, **kwargs):
+        def __init__(self, *args, **kwargs):
             pass
 
         def __call__(self, fun):
@@ -219,9 +219,7 @@ class NeqSys(_NeqSysBase):
         intern_x0, self.internal_params = self.pre_process(x0, params)
         if internal_x0 is not None:
             intern_x0 = internal_x0
-        solver_cb = self._get_solver_cb(solver)
-        self.internal_x, sol = solver_cb(intern_x0, **kwargs)
-        sol['solver_cb'] = solver_cb
+        self.internal_x, sol = self._get_solver_cb(solver)(intern_x0, **kwargs)
         return self.post_process(self.internal_x,
                                  self.internal_params)[:1] + (sol,)
 
