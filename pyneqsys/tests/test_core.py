@@ -106,16 +106,17 @@ def _check_NaCl(cneqsys, guesses, cases=-1, **kwargs):
         ([0, 0, 2], [2, 2, 0]),
         ([2, 2, 2], [2, 2, 2]),
     ]
-
+    info_dicts = []
     for init, final in _init_final[:cases]:
         print(init)
         for guess in guesses:
             print(guess)
             if guess is None:
                 guess = init
-            x, sol = cneqsys.solve(guess, init + [4], solver='scipy', **kwargs)
-            assert sol['success'] and np.allclose(x, final)
-
+            x, info_dict = cneqsys.solve(guess, init + [4], solver='scipy', **kwargs)
+            assert info_dict['success'] and np.allclose(x, final)
+            info_dicts.append(info_dict)
+    return info_dicts
 
 def _factory_lin(conds):
     # This is an example of NaCl precipitation
@@ -233,7 +234,8 @@ def test_solve_series():
 def test_ChainedNeqSys():
     neqsys_log = _get_cneqsys3(-60)
     neqsys_lin = _get_cneqsys2()
-    chained = ChainedNeqSys([neqsys_log, neqsys_lin], save_sols=True)
-    _check_NaCl(chained, [None], 2, method='lm')
-    assert (chained.last_solve_sols[0]['success'] and
-            chained.last_solve_sols[1]['success'])
+    chained = ChainedNeqSys([neqsys_log, neqsys_lin])
+    info_dicts  = _check_NaCl(chained, [None], 2, method='lm')
+    for nfo in info_dicts:
+        assert (nfo['intermediate_info'][0]['success'] and
+                nfo['intermediate_info'][1]['success'])

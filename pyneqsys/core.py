@@ -60,27 +60,27 @@ class _NeqSysBase(object):
         self.internal_xout = np.empty_like(xout)
         self.internal_params_out = np.empty((len(varied_data),
                                              len(new_params)))
-        sols = []
+        info_dicts = []
         new_x0 = np.array(x0, dtype=np.float64)
         for idx, value in enumerate(varied_data):
             try:
                 new_params[varied_idx] = value
             except TypeError:
                 new_params = value  # e.g. type(new_params) == int
-            x, sol = self.solve(new_x0, new_params, internal_x0, solver,
+            x, info_dict = self.solve(new_x0, new_params, internal_x0, solver,
                                 **kwargs)
-            if sol['success']:
+            if info_dict['success']:
                 try:
-                    new_x0 = sol['sol_vecs'][0]  # See ChainedNeqSys.solve
-                    internal_x0 = sol['internal_x_vecs'][0]
+                    new_x0 = info_dict['x_vecs'][0]  # See ChainedNeqSys.solve
+                    internal_x0 = info_dict['internal_x_vecs'][0]
                 except:
                     new_x0 = x
                     internal_x0 = None
             xout[idx, :] = x
             self.internal_xout[idx, :] = self.internal_x
             self.internal_params_out[idx, :] = self.internal_params
-            sols.append(sol)
-        return xout, sols
+            info_dicts.append(info_dict)
+        return xout, info_dicts
 
     def plot_series(self, *args, **kwargs):
         if kwargs.get('labels') is None:
@@ -222,9 +222,10 @@ class NeqSys(_NeqSysBase):
         intern_x0, self.internal_params = self.pre_process(x0, params)
         if internal_x0 is not None:
             intern_x0 = internal_x0
-        self.internal_x, sol = self._get_solver_cb(solver)(intern_x0, **kwargs)
+        info = self._get_solver_cb(solver)(intern_x0, **kwargs)
+        self.internal_x = info['x'].copy()
         return self.post_process(self.internal_x,
-                                 self.internal_params)[:1] + (sol,)
+                                 self.internal_params)[:1] + (info,)
 
     def _solve_scipy(self, intern_x0, tol=1e-8, method=None, **kwargs):
         """
@@ -268,24 +269,33 @@ generated/scipy.optimize.root.html
         new_kwargs['args'] = self.internal_params
         # np.atleast_1d(np.array(self.internal_params, dtype=np.float64))
 
-        sol = root(self.f_callback, intern_x0,
+        return root(self.f_callback, intern_x0,
                    jac=self.j_callback, method=method, tol=tol,
                    **new_kwargs)
-        return sol.x, sol
 
     def _solve_nleq2(self, intern_x0, tol=1e-8, method=None, **kwargs):
         """ Provisional, subject to unnotified API breaks """
         from pynleq2 import solve
 
-        def f(x, ierr):
-            return self.f_callback(x[:self.nx], x[self.nx:])
-        x, ierr = solve(
-            (lambda x, ierr: (self.f_callback(x, self.internal_params), ierr)),
-            (lambda x, ierr: (self.j_callback(x, self.internal_params), ierr)),
-            intern_x0,
-            **kwargs
-        )
-        return x, {'success': ierr == 0, 'ierr': ierr}
+        def f_cb(x, ierr):
+            f_cb.nfev += 1
+            return self.f_callback(x, self.internal_params), ierr
+        f_cb.nfev = 0
+
+        def j_cb(x, ierr):
+            j_cb.njev += 1
+            return self.j_callback(x, self.internal_params), ierr
+        j_cb.njev = 0
+
+        x, ierr = solve(f_cb, j_cb, intern_x0, **kwargs)
+        return {
+            'x': x,
+            'fun': np.asarray(f_cb(x, 0)),
+            'success': ierr == 0,
+            'nfev': f_cb.nfev,
+            'njev': j_cb.njev,
+            'ierr': ierr,
+        }
 
 
 class ConditionalNeqSys(_NeqSysBase):
@@ -365,10 +375,12 @@ class ConditionalNeqSys(_NeqSysBase):
         conds = self.get_conds(x0, params, initial_conditions)  # DO-NOT-MERGE!
         if initial_conditions is not None:  # this is one alternative
             conds = initial_conditions      # (if I keep this: remove above)
-        idx = 0
+        idx, nfev, njev = 0, 0, 0
         while idx < conditional_maxiter:
             neqsys = self.neqsys_factory(conds)
-            x0, sol = neqsys.solve(x0, params, internal_x0, solver, **kwargs)
+            x0, info = neqsys.solve(x0, params, internal_x0, solver, **kwargs)
+            nfev += info['nfev']
+            njev += info.get('njev', 0)
             internal_x0 = None
             nconds = self.get_conds(x0, params, conds)
             if nconds == conds:
@@ -380,7 +392,13 @@ class ConditionalNeqSys(_NeqSysBase):
             raise Exception("Solving failed, conditional_maxiter reached")
         self.internal_x = x0
         self.internal_params = params
-        return x0, {'success': sol['success'], 'conditions': conds}
+        return x0, {
+            'success': info['success'],
+            'conditions': conds,
+            'nfev': nfev,
+            'njev': njev,
+            'fun': info['fun']
+        }
 
     def post_process(self, x, params, conds=None):
         if conds is None:
@@ -420,36 +438,34 @@ class ChainedNeqSys(_NeqSysBase):
 
     """
 
-    def __init__(self, neqsystems, save_sols=False, names=None):
+    def __init__(self, neqsystems, names=None):
         self.neqsystems = neqsystems
-        self.save_sols = save_sols
         self.names = names
 
     def solve(self, x0, params=(), internal_x0=None, solver=None, **kwargs):
-        if self.save_sols:
-            self.last_solve_sols = []
-        sol_vecs = []
+        x_vecs = []
+        info_vec = []
         internal_x_vecs = []
         for idx, neqsys in enumerate(self.neqsystems):
-            print('ChainedNeqSys.solve, idx=%d, x0=%s, internal_x0=%s' % (idx, str(x0), str(internal_x0))) ## DEBUG, DO-NOT-MERGE!
-            x0, sol = neqsys.solve(x0, params, internal_x0, solver, **kwargs)
+            x0, info = neqsys.solve(x0, params, internal_x0, solver, **kwargs)
             internal_x0 = None  # only use for first iteration
-            if 'conditions' in sol:  # see ConditionalNeqSys.solve
-                kwargs['initial_conditions'] = sol['conditions']
-            sol_vecs.append(x0)
+            if 'conditions' in info:  # see ConditionalNeqSys.solve
+                kwargs['initial_conditions'] = info['conditions']
+            x_vecs.append(x0)
             internal_x_vecs.append(neqsys.internal_x)
-            if self.save_sols:
-                self.last_solve_sols.append(sol)
+            info_vec.append(info)
         self.internal_x = x0
         self.internal_params = params
-        info_dict = {'success': sol['success']}
-        info_dict['sol_vecs'] = sol_vecs
+        info_dict = {
+            'success': info['success'],
+            'fun': info['fun'],
+            'nfev': sum([nfo['nfev'] for nfo in info_vec]),
+            'njev': sum([nfo['njev'] for nfo in info_vec]),
+        }
+        info_dict['x_vecs'] = x_vecs
+        info_dict['intermediate_info'] = info_vec
         info_dict['internal_x_vecs'] = internal_x_vecs
         return x0, info_dict
-
-    @classmethod
-    def from_callback(cls, NeqSys_vec, *args, **kwargs):
-        return cls([NS.from_callback(*args, **kwargs) for NS in NeqSys_vec])
 
     def post_process(self, x, params):
         return self.neqsystems[0].post_process(x, params)  # outermost

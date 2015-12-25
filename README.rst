@@ -51,8 +51,8 @@ Example reformulated from `SciPy documentation <http://docs.scipy.org/doc/scipy/
    >>> neqsys = SymbolicSys.from_callback(
    ...     lambda x: [(x[0] - x[1])**3/2 + x[0] - 1,
    ...                (x[1] - x[0])**3/2 + x[1]], 2)
-   >>> x, sol = neqsys.solve([1, 0])
-   >>> assert sol['success']
+   >>> x, info = neqsys.solve([1, 0])
+   >>> assert info['success']
    >>> print(x)
    [ 0.8411639  0.1588361]
 
