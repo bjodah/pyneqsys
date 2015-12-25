@@ -53,8 +53,8 @@ class _NeqSysBase(object):
         f_out = np.asarray(self.f_callback(internal_x.T, internal_params))
         return np.sqrt(np.mean(f_out**2, axis=0))
 
-    def solve_series(self, solver, x0, params, varied_data, varied_idx,
-                     internal_x0=None, **kwargs):
+    def solve_series(self, x0, params, varied_data, varied_idx,
+                     internal_x0=None, solver=None, **kwargs):
         new_params = np.atleast_1d(np.array(params, dtype=np.float64))
         xout = np.empty((len(varied_data), len(x0)))
         self.internal_xout = np.empty_like(xout)
@@ -67,7 +67,7 @@ class _NeqSysBase(object):
                 new_params[varied_idx] = value
             except TypeError:
                 new_params = value  # e.g. type(new_params) == int
-            x, sol = self.solve(solver, new_x0, new_params, internal_x0,
+            x, sol = self.solve(new_x0, new_params, internal_x0, solver,
                                 **kwargs)
             if sol['success']:
                 try:
@@ -89,7 +89,8 @@ class _NeqSysBase(object):
 
     def plot_series_residuals(self, xres, varied_data, varied_idx, params,
                               **kwargs):
-        xerr = np.empty((xres.shape[0], self.nf))
+        nf = len(self.f_callback(*self.pre_process(xres[0], params)))
+        xerr = np.empty((xres.shape[0], nf))
         new_params = np.array(params)
         for idx, row in enumerate(xres):
             new_params[varied_idx] = varied_data[idx]
@@ -98,22 +99,24 @@ class _NeqSysBase(object):
 
     def plot_series_residuals_internal(self, varied_data, varied_idx,
                                        **kwargs):
-        xerr = np.empty((self.internal_xout.shape[0], self.nf))
+        nf = len(self.f_callback(*self.pre_process(
+            self.internal_xout[0], self.internal_params_out[0])))
+        xerr = np.empty((self.internal_xout.shape[0], nf))
         for idx, (res, params) in enumerate(zip(self.internal_xout,
                                                 self.internal_params_out)):
             xerr[idx, :] = self.f_callback(res, params)
         self.plot_series(xerr, varied_data, labels=False, **kwargs)
 
-    def solve_and_plot_series(self, solver, x0, params, varied_data,
-                              varied_idx,
+    def solve_and_plot_series(self, x0, params, varied_data,
+                              varied_idx, solver=None,
                               plot_series_ax=None,
                               plot_series_residuals_ax=None,
                               plot_series_kwargs=None,
                               plot_series_residuals_kwargs=None,
                               **kwargs):
         """ Solve and plot for a series of a varied parameter """
-        xres, sols = self.solve_series(solver, x0, params, varied_data,
-                                       varied_idx, **kwargs)
+        xres, sols = self.solve_series(x0, params, varied_data,
+                                       varied_idx, solver=solver, **kwargs)
         self.plot_series(xres, varied_data, sols=sols, ax=plot_series_ax,
                          **(plot_series_kwargs or {}))
         if plot_series_residuals_ax is not None:
@@ -199,15 +202,12 @@ class NeqSys(_NeqSysBase):
             xout, params_out = post_processor(xout, params_out)
         return xout, params_out
 
-    def solve(self, solver, x0, params=(), internal_x0=None, **kwargs):
+    def solve(self, x0, params=(), internal_x0=None, solver=None, **kwargs):
         """
         Solve with ``solver``. Convenience method.
 
         Parameters
         ----------
-        solver: str or None
-            if str: uses _solve_``solver``(\*args, \*\*kwargs)
-            if ``None``: chooses from PYNEQSYS_SOLVER environment variable
         x0: 1D array of floats
             Guess (subject to ``self.post_processors``)
         params: 1D array_like of floats (default: ())
@@ -215,6 +215,9 @@ class NeqSys(_NeqSysBase):
         internal_x0: 1D array of floats (default: None)
             When given it overrides (processed) ``x0``. ``internal_x0`` is not
             subject to ``self.post_processors``.
+        solver: str or None
+            if str: uses _solve_``solver``(\*args, \*\*kwargs)
+            if ``None``: chooses from PYNEQSYS_SOLVER environment variable
         """
         intern_x0, self.internal_params = self.pre_process(x0, params)
         if internal_x0 is not None:
@@ -313,6 +316,7 @@ class ConditionalNeqSys(_NeqSysBase):
     neqsys_factory: callback
         should have the signature f(conds) -> NeqSys instance
         where conds is a list of bools
+    names: list of strings (default: None)
 
     Examples
     --------
@@ -343,10 +347,9 @@ class ConditionalNeqSys(_NeqSysBase):
 
     """
 
-    def __init__(self, condition_cb_pairs, neqsys_factory, nf, names=None):
+    def __init__(self, condition_cb_pairs, neqsys_factory, names=None):
         self.condition_cb_pairs = condition_cb_pairs
         self.neqsys_factory = clru_cache(LRU_CACHE_SIZE)(neqsys_factory)
-        self.nf = nf
         self.names = names
 
     def get_conds(self, x, params, prev_conds=None):
@@ -356,7 +359,7 @@ class ConditionalNeqSys(_NeqSysBase):
                       for prev, (fw, bw) in zip(prev_conds,
                                                 self.condition_cb_pairs)])
 
-    def solve(self, solver, x0, params=(), internal_x0=None,
+    def solve(self, x0, params=(), internal_x0=None, solver=None,
               conditional_maxiter=20, initial_conditions=None, **kwargs):
         """ Solve the problem (systems of equations) """
         conds = self.get_conds(x0, params, initial_conditions)  # DO-NOT-MERGE!
@@ -365,7 +368,7 @@ class ConditionalNeqSys(_NeqSysBase):
         idx = 0
         while idx < conditional_maxiter:
             neqsys = self.neqsys_factory(conds)
-            x0, sol = neqsys.solve(solver, x0, params, internal_x0, **kwargs)
+            x0, sol = neqsys.solve(x0, params, internal_x0, solver, **kwargs)
             internal_x0 = None
             nconds = self.get_conds(x0, params, conds)
             if nconds == conds:
@@ -422,14 +425,14 @@ class ChainedNeqSys(_NeqSysBase):
         self.save_sols = save_sols
         self.names = names
 
-    def solve(self, solver, x0, params=(), internal_x0=None, **kwargs):
+    def solve(self, x0, params=(), internal_x0=None, solver=None, **kwargs):
         if self.save_sols:
             self.last_solve_sols = []
         sol_vecs = []
         internal_x_vecs = []
         for idx, neqsys in enumerate(self.neqsystems):
             print('ChainedNeqSys.solve, idx=%d, x0=%s, internal_x0=%s' % (idx, str(x0), str(internal_x0))) ## DEBUG, DO-NOT-MERGE!
-            x0, sol = neqsys.solve(solver, x0, params, internal_x0, **kwargs)
+            x0, sol = neqsys.solve(x0, params, internal_x0, solver, **kwargs)
             internal_x0 = None  # only use for first iteration
             if 'conditions' in sol:  # see ConditionalNeqSys.solve
                 kwargs['initial_conditions'] = sol['conditions']

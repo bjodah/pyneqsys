@@ -28,7 +28,7 @@ def j(x, params):
 
 def _test_neqsys_params(solver):
     ns = NeqSys(2, 2, f, jac=j)
-    x, sol = ns.solve(solver, [0, 0], [3])
+    x, sol = ns.solve([0, 0], [3], solver=solver)
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
 
@@ -53,7 +53,7 @@ def test_neqsys_params_nleq2():
 def _test_neqsys_no_params(solver):
     ns = NeqSys(2, 2, lambda x: f(x, [3]),
                 jac=lambda x: j(x, [3]))
-    x, sol = ns.solve(solver, [0, 0])
+    x, sol = ns.solve([0, 0], solver=solver)
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
 
@@ -80,16 +80,16 @@ def test_ConditionalNeqSys1():
 
     cneqsys = ConditionalNeqSys([
         (lambda x, p: x[0] > 0, lambda x, p: x[0] >= 0)], factory)
-    x, sol = cneqsys.solve('scipy', [0], [pi, 3])
+    x, sol = cneqsys.solve([0], [pi, 3], solver='scipy')
     assert sol['success']
     assert abs(x[0]) < 1e-13
-    x, sol = cneqsys.solve('scipy', [-1.4], [pi, 3])
+    x, sol = cneqsys.solve([-1.4], [pi, 3], solver='scipy')
     assert sol['success']
     assert abs(x[0] + 1) < 1e-13
-    x, sol = cneqsys.solve('scipy', [2], [pi, 3])
+    x, sol = cneqsys.solve([2], [pi, 3], solver='scipy')
     assert sol['success']
     assert abs(x[0] - 3) < 1e-13
-    x, sol = cneqsys.solve('scipy', [7], [pi, 3])
+    x, sol = cneqsys.solve([7], [pi, 3], solver='scipy')
     assert sol['success']
     assert abs(x[0] - 3) < 1e-13
 
@@ -113,7 +113,7 @@ def _check_NaCl(cneqsys, guesses, cases=-1, **kwargs):
             print(guess)
             if guess is None:
                 guess = init
-            x, sol = cneqsys.solve('scipy', guess, init + [4], **kwargs)
+            x, sol = cneqsys.solve(guess, init + [4], solver='scipy', **kwargs)
             assert sol['success'] and np.allclose(x, final)
 
 
@@ -226,7 +226,7 @@ def test_version():
 
 def test_solve_series():
     neqsys = NeqSys(1, 1, lambda x, p: [x[0]-p[0]])
-    xout, sols = neqsys.solve_series('scipy', [0], [0], [0, 1, 2, 3], 0)
+    xout, sols = neqsys.solve_series([0], [0], [0, 1, 2, 3], 0, solver='scipy')
     assert np.allclose(xout[:, 0], [0, 1, 2, 3])
 
 

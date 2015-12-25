@@ -21,7 +21,7 @@ def rms(x):
     return np.sqrt(np.mean(np.asarray(x)**2))
 
 
-class SolverBase:
+class SolverBase(object):
 
     def alloc(self):
         self.history_x = []
@@ -163,5 +163,5 @@ class AutoDampedGradientDescentSolver(GradientDescentSolver):
         return self.cur_damp
 
 
-class QuorumSolver:
+class QuorumSolver(object):
     pass

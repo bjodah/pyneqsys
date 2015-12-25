@@ -13,7 +13,7 @@ def solve(init_a, init_b, power, solver='scipy'):
     f = [x[0] + (x[0] - x[1])**p/2 - 1,
          (x[1] - x[0])**p/2 + x[1]]
     neqsys = SymbolicSys(x, f, [p])
-    return neqsys.solve(solver, [init_a, init_b], [power])
+    return neqsys.solve([init_a, init_b], [power], solver=solver)
 
 
 def main(init_a=1., init_b=0., power=3, savetxt='None', verbose=False):
