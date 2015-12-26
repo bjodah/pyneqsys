@@ -29,7 +29,6 @@ except ImportError:
 def _ensure_2args(func):
     if func is None:
         return None
-
     if len(inspect.getargspec(func)[0]) == 1:
         return lambda x, params: func(x)
     else:

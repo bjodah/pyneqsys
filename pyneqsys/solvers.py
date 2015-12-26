@@ -53,7 +53,7 @@ class SolverBase(object):
                 if rms_f < tol:
                     success = True
                     break
-            return cur_x, {'success': success}
+            return {'x': cur_x, 'success': success}
         self.alloc()
         return cb
 
