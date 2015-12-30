@@ -40,7 +40,7 @@ def test_symbolicsys__from_callback__no_params():
 
 
 def test_TransformedSys__from_callback():
-    ts = TransformedSys.from_callback(f, 2, 1, transf_cbs=(sp.exp, sp.log))
+    ts = TransformedSys.from_callback(f, (sp.exp, sp.log), 2, 1)
     x, sol = ts.solve([1, .1], [3], solver='scipy')
     assert sol['success']
     assert abs(x[0] - 0.8411639) < 2e-7

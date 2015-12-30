@@ -67,7 +67,7 @@ class _NeqSysBase(object):
             except TypeError:
                 new_params = value  # e.g. type(new_params) == int
             x, info_dict = self.solve(new_x0, new_params, internal_x0, solver,
-                                **kwargs)
+                                      **kwargs)
             if info_dict['success']:
                 try:
                     new_x0 = info_dict['x_vecs'][0]  # See ChainedNeqSys.solve
@@ -164,7 +164,7 @@ class NeqSys(_NeqSysBase):
     --------
     >>> neqsys = NeqSys(2, 2, lambda x, p: [(x[0] - x[1])**p[0]/2 + x[0] - 1,
     ...                                     (x[1] - x[0])**p[0]/2 + x[1]])
-    >>> x, sol = neqsys.solve('scipy', [1, 0], [3])
+    >>> x, sol = neqsys.solve([1, 0], [3])
     >>> assert sol['success']
     >>> print(x)
     [ 0.8411639  0.1588361]
@@ -269,8 +269,8 @@ generated/scipy.optimize.root.html
         # np.atleast_1d(np.array(self.internal_params, dtype=np.float64))
 
         return root(self.f_callback, intern_x0,
-                   jac=self.j_callback, method=method, tol=tol,
-                   **new_kwargs)
+                    jac=self.j_callback, method=method, tol=tol,
+                    **new_kwargs)
 
     def _solve_nleq2(self, intern_x0, tol=1e-8, method=None, **kwargs):
         """ Provisional, subject to unnotified API breaks """
@@ -337,19 +337,19 @@ class ConditionalNeqSys(_NeqSysBase):
     >>> cneqsys = ConditionalNeqSys([(lambda x, p: x[0] > 0,  # no 0-switch
     ...                               lambda x, p: x[0] >= 0)],  # no 0-switch
     ...                             factory)
-    >>> x, sol = cneqsys.solve('scipy', [0], [pi, 3])
+    >>> x, sol = cneqsys.solve([0], [pi, 3])
     >>> assert sol['success']
     >>> print(x)
     [ 0.]
-    >>> x, sol = cneqsys.solve('scipy', [-1.4], [pi, 3])
+    >>> x, sol = cneqsys.solve([-1.4], [pi, 3])
     >>> assert sol['success']
     >>> print(x)
     [-1.]
-    >>> x, sol = cneqsys.solve('scipy', [2], [pi, 3])
+    >>> x, sol = cneqsys.solve([2], [pi, 3])
     >>> assert sol['success']
     >>> print(x)
     [ 3.]
-    >>> x, sol = cneqsys.solve('scipy', [7], [pi, 3])
+    >>> x, sol = cneqsys.solve([7], [pi, 3])
     >>> assert sol['success']
     >>> print(x)
     [ 3.]
@@ -426,13 +426,13 @@ class ChainedNeqSys(_NeqSysBase):
     >>> neqsys_log = NeqSys(1, 1, lambda x, p: [2*x[0] - log(p[0])],
     ...    pre_processors=[lambda x, p: ([log(x[0]+1e-60)], p)],
     ...    post_processors=[lambda x, p: ([exp(x[0])], p)])
-    >>> chained = ChainedNeqSys([neqsys_log, neqsys_lin], save_sols=True)
-    >>> x, sol = chained.solve('scipy', [1, 1], [4])
-    >>> assert sol['success']
+    >>> chained = ChainedNeqSys([neqsys_log, neqsys_lin])
+    >>> x, info = chained.solve([1, 1], [4])
+    >>> assert info['success']
     >>> print(x)
     [ 2.]
-    >>> print(chained.last_solve_sols[0].nfev,
-    ...       chained.last_solve_sols[1].nfev)  # doctest: +SKIP
+    >>> print(info['intermediate_info'][0]['nfev'],
+    ...       info['intermediate_info'][1]['nfev'])  # doctest: +SKIP
     4 3
 
     """
@@ -459,7 +459,7 @@ class ChainedNeqSys(_NeqSysBase):
             'success': info['success'],
             'fun': info['fun'],
             'nfev': sum([nfo['nfev'] for nfo in info_vec]),
-            'njev': sum([nfo['njev'] for nfo in info_vec]),
+            'njev': sum([nfo.get('njev', 0) for nfo in info_vec]),
         }
         info_dict['x_vecs'] = x_vecs
         info_dict['intermediate_info'] = info_vec

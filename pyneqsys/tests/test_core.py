@@ -113,10 +113,12 @@ def _check_NaCl(cneqsys, guesses, cases=-1, **kwargs):
             print(guess)
             if guess is None:
                 guess = init
-            x, info_dict = cneqsys.solve(guess, init + [4], solver='scipy', **kwargs)
+            x, info_dict = cneqsys.solve(guess, init + [4],
+                                         solver='scipy', **kwargs)
             assert info_dict['success'] and np.allclose(x, final)
             info_dicts.append(info_dict)
     return info_dicts
+
 
 def _factory_lin(conds):
     # This is an example of NaCl precipitation
@@ -235,7 +237,7 @@ def test_ChainedNeqSys():
     neqsys_log = _get_cneqsys3(-60)
     neqsys_lin = _get_cneqsys2()
     chained = ChainedNeqSys([neqsys_log, neqsys_lin])
-    info_dicts  = _check_NaCl(chained, [None], 2, method='lm')
+    info_dicts = _check_NaCl(chained, [None], 2, method='lm')
     for nfo in info_dicts:
         assert (nfo['intermediate_info'][0]['success'] and
                 nfo['intermediate_info'][1]['success'])

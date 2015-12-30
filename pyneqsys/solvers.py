@@ -17,6 +17,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
+
 def rms(x):
     return np.sqrt(np.mean(np.asarray(x)**2))
 
@@ -91,6 +92,7 @@ class GradientDescentSolver(SolverBase):
     def step(self, x, iter_idx, maxiter):
         return self.damping(iter_idx, maxiter) * self._gd_step(x)
 
+
 class PolakRibiereConjugateGradientSolver(SolverBase):
 
     def __init__(self, reset_freq=10):
@@ -101,7 +103,6 @@ class PolakRibiereConjugateGradientSolver(SolverBase):
         self.history_Bn = []  # for curiosity
         self.history_sn = []
         super(PolakRibiereConjugateGradientSolver, self).alloc()
-
 
     def line_search(self, x, dx):
         from scipy.optimize import fminbound
@@ -119,7 +120,7 @@ class PolakRibiereConjugateGradientSolver(SolverBase):
             dx0 = dx[-1]
             dx1 = dx[-2]
             ddx01 = dx0 - dx1
-            Bn = Bn_suggest = dx0.dot(ddx01)/dx1.dot(dx1)
+            Bn = dx0.dot(ddx01)/dx1.dot(dx1)
             # print(Bn_suggest)
             # Bn = max(0, Bn_suggest)
             self.history_Bn.append(Bn)  # for curiosity
