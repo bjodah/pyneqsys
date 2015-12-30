@@ -13,7 +13,8 @@ build:
     - (cd examples/; ../scripts/render_index.sh *.html)
     - ./scripts/generate_docs.sh
     - ./scripts/prepare_deploy.sh
-    - ! grep "DO-NOT-MERGE!" -R .
+    - bash -c '! grep "DO-NOT-MERGE!" -R .'
+
 deploy:
 
   rsync:
