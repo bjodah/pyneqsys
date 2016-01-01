@@ -37,12 +37,13 @@ def _ensure_2args(func):
 
 class _NeqSysBase(object):
 
-    def _get_solver_cb(self, solver):
+    def _get_solver_cb(self, solver, attached_solver):
+        if attached_solver is not None:
+            if solver is not None:
+                raise ValueError("solver must be None.")
+            solver = attached_solver(self)
         if callable(solver):
-            if inspect.ismethod(solver):
-                return solver
-            else:
-                return solver(self)
+            return solver
         if solver is None:
             solver = os.environ.get('PYNEQSYS_SOLVER', 'scipy')
         return getattr(self, '_solve_' + solver)
@@ -201,7 +202,8 @@ class NeqSys(_NeqSysBase):
             xout, params_out = post_processor(xout, params_out)
         return xout, params_out
 
-    def solve(self, x0, params=(), internal_x0=None, solver=None, **kwargs):
+    def solve(self, x0, params=(), internal_x0=None, solver=None,
+              attached_solver=None, **kwargs):
         """
         Solve with ``solver``. Convenience method.
 
@@ -214,14 +216,16 @@ class NeqSys(_NeqSysBase):
         internal_x0: 1D array of floats (default: None)
             When given it overrides (processed) ``x0``. ``internal_x0`` is not
             subject to ``self.post_processors``.
-        solver: str or None
+        solver: str or callable or None
             if str: uses _solve_``solver``(\*args, \*\*kwargs)
             if ``None``: chooses from PYNEQSYS_SOLVER environment variable
+        attached_solver: callable factory
+            invokes: solver = attached_solver(self)
         """
         intern_x0, self.internal_params = self.pre_process(x0, params)
         if internal_x0 is not None:
             intern_x0 = internal_x0
-        info = self._get_solver_cb(solver)(intern_x0, **kwargs)
+        info = self._get_solver_cb(solver, attached_solver)(intern_x0, **kwargs)
         self.internal_x = info['x'].copy()
         return self.post_process(self.internal_x,
                                  self.internal_params)[:1] + (info,)
@@ -295,6 +299,19 @@ generated/scipy.optimize.root.html
             'njev': j_cb.njev,
             'ierr': ierr,
         }
+
+    def _solve_kinsol(self, intern_x0, **kwargs):
+        import pykinsol
+
+        def _f(x, fout):
+            res = self.f_callback(x, self.internal_params)
+            fout[:] = res
+
+        def _j(x, Jout, fx):
+            res = self.j_callback(x, self.internal_params)
+            Jout[:, :] = res[:, :]
+
+        return pykinsol.solve(_f, _j, intern_x0, **kwargs)
 
 
 class ConditionalNeqSys(_NeqSysBase):
@@ -371,9 +388,10 @@ class ConditionalNeqSys(_NeqSysBase):
     def solve(self, x0, params=(), internal_x0=None, solver=None,
               conditional_maxiter=20, initial_conditions=None, **kwargs):
         """ Solve the problem (systems of equations) """
-        conds = self.get_conds(x0, params, initial_conditions)  # DO-NOT-MERGE!
-        if initial_conditions is not None:  # this is one alternative
-            conds = initial_conditions      # (if I keep this: remove above)
+        if initial_conditions is not None:
+            conds = initial_conditions
+        else:
+            conds = self.get_conds(x0, params, initial_conditions)
         idx, nfev, njev = 0, 0, 0
         while idx < conditional_maxiter:
             neqsys = self.neqsys_factory(conds)
@@ -391,13 +409,16 @@ class ConditionalNeqSys(_NeqSysBase):
             raise Exception("Solving failed, conditional_maxiter reached")
         self.internal_x = x0
         self.internal_params = params
-        return x0, {
+        result = {
+            'x': np.array(x0),  # copy
             'success': info['success'],
             'conditions': conds,
             'nfev': nfev,
             'njev': njev,
-            'fun': info['fun']
         }
+        if 'fun' in info:
+            result['fun'] = info['fun']
+        return x0, result
 
     def post_process(self, x, params, conds=None):
         if conds is None:

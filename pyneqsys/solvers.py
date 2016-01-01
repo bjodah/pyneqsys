@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 """
 Currently this module contains a few solvers for demonstration purposes and
-currently it is not in the scope of pyneqsys to provide "production" solvers,
+it is not in the scope of pyneqsys to provide "production" solvers,
 but instead be a package for using well established solvers for solving systems
-of equations symbolically.
+of equations defined in a uniform (optionally symbolic) way.
 
-Nevertheless, the solvers provided here may provide a good starting point for
+Nevertheless, the solvers provided here may serve as a starting point for
 writing new types of solvers for systems of non-linear equations (with an
 emphasis on a concise API rather than optimal performance).
 
-Note that all classes and functions in this module (``pyneqsys.solvers``) are
-provisional, i.e. they may be renamed, change behavior and or signature
-without any prior notice.
+Do not rely on any of the classes and functions in this module
+(``pyneqsys.solvers``) since they are all to be regarded as provisional,
+i.e. they may be renamed, change behavior and/or signature without any
+prior notice.
 """
+
 from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
@@ -25,6 +27,8 @@ def rms(x):
 class SolverBase(object):
 
     def alloc(self):
+        self.nfev = 0
+        self.njev = 0
         self.history_x = []
         self.history_dx = []
         self.history_f = []
@@ -33,15 +37,26 @@ class SolverBase(object):
     def step(self, x):
         pass
 
+    def f(self, x):
+        self.nfev += 1
+        return self.inst.f_callback(x, self.inst.internal_params)
+
+    def j(self, x):
+        self.njev += 1
+        return self.inst.j_callback(x, self.inst.internal_params)
+
     def cb_factory(self):
-        def cb(intern_x0, tol=1e-8, maxiter=100):
+        def cb(intern_x0, steptol=1e-8, ftol=1e-12, maxiter=100):
+            if isinstance(ftol, float):
+                ftol = ftol * np.ones_like(intern_x0)
+            self.steptol = steptol
+            self.ftol = ftol
             cur_x = np.array(intern_x0)
             iter_idx = 0
             success = False
             self.history_x.append(cur_x.copy())
             while iter_idx < maxiter:
-                f = np.asarray(self.inst.f_callback(
-                    cur_x, self.inst.internal_params))
+                f = np.asarray(self.f(cur_x))
                 self.history_f.append(f)
                 rms_f = rms(f)
                 self.history_rms_f.append(rms_f)
@@ -51,21 +66,37 @@ class SolverBase(object):
                 self.history_x.append(cur_x.copy())
 
                 iter_idx += 1
-                if rms_f < tol:
+                if np.all(np.abs(f) < ftol):
                     success = True
                     break
-            return {'x': cur_x, 'success': success}
+            return {'x': cur_x, 'success': success, 'nit': iter_idx,
+                    'nfev': self.nfev, 'njev': self.njev}
         self.alloc()
         return cb
-
-    def _gd_step(self, x):
-        J = self.inst.j_callback(x, self.inst.internal_params)
-        return -J.dot(self.history_f[-1])
 
     def __call__(self, inst):
         self.inst = inst
         self.cb = self.cb_factory()
         return self.cb
+
+    def _gd_step(self, x):
+        self.cur_j = self.j(x)
+        return -self.cur_j.dot(self.history_f[-1])
+
+    def line_search(self, x, dx, mxiter=10, alpha=1e-4):
+        # Goldstein-Armijo linesearch (backtracking)
+        idx = 0
+        lmb = 1.0
+        while idx < mxiter:
+            f = self.f(x + lmb*dx)
+            rms_f = rms(f)
+            rms_cmp = rms(self.history_f[-1] + alpha*self.cur_j.dot(lmb*dx))
+            #print(lmb, dx, rms_f, rms_cmp)
+            if rms_f <= rms_cmp:
+                return lmb*dx
+            lmb /= 2
+            idx += 1
+        return lmb*dx
 
 
 class GradientDescentSolver(SolverBase):
@@ -93,6 +124,12 @@ class GradientDescentSolver(SolverBase):
         return self.damping(iter_idx, maxiter) * self._gd_step(x)
 
 
+class LineSearchingGradientDescentSolver(SolverBase):
+
+    def step(self, x, iter_idx, maxiter):
+        return self.line_search(x, self._gd_step(x))
+
+
 class PolakRibiereConjugateGradientSolver(SolverBase):
 
     def __init__(self, reset_freq=10):
@@ -104,17 +141,11 @@ class PolakRibiereConjugateGradientSolver(SolverBase):
         self.history_sn = []
         super(PolakRibiereConjugateGradientSolver, self).alloc()
 
-    def line_search(self, x, dx):
-        from scipy.optimize import fminbound
-        return fminbound(lambda a: rms(self.inst.f_callback(
-            x+a*dx, self.inst.internal_params)), 0, 1)
-
     def step(self, x, iter_idx, maxiter):
         dx = self.history_dx
         sn = self.history_sn
         if iter_idx in (0, 1) or iter_idx % self.reset_freq == 0:
-            dxn = self._gd_step(x)
-            dxn *= self.line_search(x, dxn)
+            dxn = self.line_search(x, self._gd_step(x))
             sn.append(x*0)
         else:
             dx0 = dx[-1]
