@@ -1,19 +1,16 @@
 build:
   image: bjodah/bjodahimg:latest
+  environment:
+    - PYNLEQ2_NLEQ2_ROOT_URL=$$PYNLEQ2_NLEQ2_ROOT_URL
   commands:
-    - if bash -c '[[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]'; then export PYNEQSYS_RELEASE_VERSION=$DRONE_BRANCH; echo ${PYNEQSYS_RELEASE_VERSION} | tail -c +2 > __conda_version__.txt; fi
-    - echo $$PYNLEQ2_NLEQ2_ROOT_URL
-    - PYNLEQ2_NLEQ2_ROOT_URL=$$PYNLEQ2_NLEQ2_ROOT_URL pip install --user pynleq2 pysym pyodesys
-    - PYNLEQ2_NLEQ2_ROOT_URL=$$PYNLEQ2_NLEQ2_ROOT_URL pip3 install --user pynleq2 pysym pyodesys
-    - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov $CI_REPO --cov-report html
-    - python2 setup.py sdist
-    - pip install dist/*.tar.gz
-    - pip3 install dist/*.tar.gz
+    - pip install --user pynleq2 pysym pyodesys pykinsol
+    - pip3 install --user pynleq2 pysym pyodesys pykinsol
+    - ./scripts/ci.sh pyneqsys
     - (cd examples/; ipython2 nbconvert --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
     - (cd examples/; ../scripts/render_index.sh *.html)
     - ./scripts/generate_docs.sh
     - ./scripts/prepare_deploy.sh
-    - ! grep "DO-NOT-MERGE!" -R .
+
 deploy:
 
   rsync:

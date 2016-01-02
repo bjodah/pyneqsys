@@ -34,7 +34,7 @@ def main(init_conc='1e-7,1e-7,1e-7,1,55.5',
         f += [Hp - OHm + NH4p - (iHp - iOHm + iNH4p)]
 
     neqsys = SymbolicSys(x, f)
-    x, sol = neqsys.solve(solver, [0]*5)
+    x, sol = neqsys.solve([0]*5, solver=solver)
     if verbose:
         print(np.exp(x), sol)
     else:

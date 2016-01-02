@@ -1,9 +1,12 @@
 v0.3.0
 ======
-- NeqSys.solve() refactored
+- New solvers: 'mpmath' (requires mpmath) and 'kinsol' (requires pykinsol)
+- NeqSys.solve() refactored (new signature, ``solver`` arg moved to pos 4)
+- New NeqSys.solve() kwarg: attached_solver (factory which registers NeqSys instance)
 - NeqSys.solve_scipy and NeqSys.solve_nleq2 was made private
 - Added ChainedNeqSys
 - In NeqSys.solve() arg "solver" may now be None -> $NEQSYS_SOLVER
+- In NeqSys.solve() arg "solver" may now be a callable
 - NeqSys.plot_series changed signature
 - New methods: NeqSys.plot_series_residuals(_internal)
 

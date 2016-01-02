@@ -12,6 +12,17 @@ from pyodesys.util import banded_jacobian, check_transforms
 from .core import NeqSys, _ensure_2args  # , ChainedNeqSys
 
 
+def map2(cb, iterable):  # Py2 type of map in Py3
+    if cb is None:  # identity function is assumed
+        return iterable
+    else:
+        return map(cb, iterable)
+
+
+def map2l(cb, iterable):  # Py2 type of map in Py3
+    return list(map2(cb, iterable))
+
+
 class SymbolicSys(NeqSys):
     """
     Parameters
@@ -128,61 +139,61 @@ class TransformedSys(SymbolicSys):
     """ A system which transforms the equations and variables internally
 
     Can be used to reformulate a problem in a numerically more stable form.
+
+    Parameters
+    ----------
+    x: iterable of variables
+    exprs: iterable of expressions
+         expressions to find root for (untransformed)
+    transf: iterable of pairs of expressions
+        forward, backward transformed instances of x
+    params: iterable of symbols
+    post_adj: callable (default: None)
+        to tweak expression after transformation
+    \*\*kwargs:
+        keyword arguments passed onto :class:`SymbolicSys`
     """
 
-    def __init__(self, x, exprs, transf=None, params=(), **kwargs):
-        if transf is not None:
-            self.fw, self.bw = zip(*transf)
-            check_transforms(self.fw, self.bw, x)
-            exprs = [e.subs(zip(x, self.fw)) for e in exprs]
-        else:
-            self.fw, self.bw = None, None
+    def __init__(self, x, exprs, transf, params=(), post_adj=None, **kwargs):
+        self.fw, self.bw = zip(*transf)
+        check_transforms(self.fw, self.bw, x)
+        exprs = [e.subs(zip(x, self.fw)) for e in exprs]
         super(TransformedSys, self).__init__(
-            x, exprs, params,
+            x, map2l(post_adj, exprs), params,
             pre_processors=[lambda xarr, params: (self.bw_cb(*xarr), params)],
             post_processors=[lambda xarr, params: (self.fw_cb(*xarr), params)],
             **kwargs)
-        if self.fw is not None:
-            self.fw_cb = self.lambdify(x, self.fw)
-            self.bw_cb = self.lambdify(x, self.bw)
+        self.fw_cb = self.lambdify(x, self.fw)
+        self.bw_cb = self.lambdify(x, self.bw)
 
     @classmethod
-    def from_callback(cls, cb, nx, nparams=0, exprs_transf=None,
-                      transf_cbs=None, **kwargs):
-        """ Generate a TransformedSys instance from a callback """
+    def from_callback(cls, cb, transf_cbs, nx, nparams=0,
+                      pre_adj=None, **kwargs):
+        """ Generate a TransformedSys instance from a callback
+
+        Parameters
+        ----------
+        cb: callable
+        transf_cbs: pair or iterable of pairs of callables
+        nx: int
+        nparams: int
+        pre_adj: callable
+        \*\*kwargs: passed onto TransformedSys
+        """
         x = kwargs.get('symarray', _symarray())('x', nx)
         p = kwargs.get('symarray', _symarray())('p', nparams)
         if nparams == 0:
             cb = _ensure_2args(cb)
-        exprs = cb(x, p)
-        if exprs_transf is not None:
-            exprs = [exprs_transf(expr) for expr in exprs]
-        if transf_cbs is not None:
-            try:
-                transf = [(transf_cbs[idx][0](xi),
-                           transf_cbs[idx][1](xi))
-                          for idx, xi in enumerate(x)]
-            except TypeError:
-                transf = zip(map(transf_cbs[0], x), map(transf_cbs[1], x))
-        else:
-            transf = None
-        return cls(x, exprs, transf, p, **kwargs)
+        try:
+            transf = [(transf_cbs[idx][0](xi),
+                       transf_cbs[idx][1](xi))
+                      for idx, xi in enumerate(x)]
+        except TypeError:
+            transf = zip(map2(transf_cbs[0], x), map2(transf_cbs[1], x))
+        return cls(x, map2l(pre_adj, cb(x, p)), transf, p, **kwargs)
 
 
-# def chained_from_callbacks(callbacks, nx, nparams=0,
-#                            pre_processors_pack=None,
-#                            post_processors_pack=None,
-#                            SSys=SymbolicSys,
-#                            save_sols=False, **kwargs):
-#     """
-#     Convenience method
-#     """
-#     neqsystems = [SSys.from_callback(cb, nx, nparams, **kwargs)
-#                   for cb in callbacks]
-#     return ChainedNeqSys(neqsystems, save_sols=save_sols)
-
-
-def linear_rref(A, b, Matrix=None):
+def linear_rref(A, b, Matrix=None, S=None):
     """ Transform a linear system to reduced row-echelon form
 
     Transforms both the matrix and right-hand side of a linear
@@ -200,7 +211,10 @@ def linear_rref(A, b, Matrix=None):
     """
     if Matrix is None:
         from sympy import Matrix
-    aug = Matrix([list(row) + [v] for row, v in zip(A, b)])
+    if S is None:
+        from sympy import S
+    mat_rows = [map2l(S, list(row) + [v]) for row, v in zip(A, b)]
+    aug = Matrix(mat_rows)
     raug, pivot = aug.rref()
     nindep = len(pivot)
     return raug[:nindep, :-1], raug[:nindep, -1]
