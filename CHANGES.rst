@@ -1,5 +1,6 @@
 v0.3.0
 ======
+- New solvers: 'mpmath' (requires mpmath) and 'kinsol' (requires pykinsol)
 - NeqSys.solve() refactored (new signature, ``solver`` arg moved to pos 4)
 - New NeqSys.solve() kwarg: attached_solver (factory which registers NeqSys instance)
 - NeqSys.solve_scipy and NeqSys.solve_nleq2 was made private

@@ -1,7 +1,7 @@
 build:
   image: bjodah/bjodahimg:latest
   environment:
-    - PYNLEQ2_NLEQ2_ROOT_URL="$$PYNLEQ2_NLEQ2_ROOT_URL"
+    - PYNLEQ2_NLEQ2_ROOT_URL=$$PYNLEQ2_NLEQ2_ROOT_URL
   commands:
     - if bash -c '[[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]'; then export PYNEQSYS_RELEASE_VERSION=$DRONE_BRANCH; echo ${PYNEQSYS_RELEASE_VERSION} | tail -c +2 > __conda_version__.txt; fi
     - pip install --user pynleq2 pysym pyodesys pykinsol

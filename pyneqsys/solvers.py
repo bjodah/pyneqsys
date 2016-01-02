@@ -91,7 +91,6 @@ class SolverBase(object):
             f = self.f(x + lmb*dx)
             rms_f = rms(f)
             rms_cmp = rms(self.history_f[-1] + alpha*self.cur_j.dot(lmb*dx))
-            #print(lmb, dx, rms_f, rms_cmp)
             if rms_f <= rms_cmp:
                 return lmb*dx
             lmb /= 2

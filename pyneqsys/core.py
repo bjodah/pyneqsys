@@ -225,10 +225,10 @@ class NeqSys(_NeqSysBase):
         intern_x0, self.internal_params = self.pre_process(x0, params)
         if internal_x0 is not None:
             intern_x0 = internal_x0
-        info = self._get_solver_cb(solver, attached_solver)(intern_x0, **kwargs)
-        self.internal_x = info['x'].copy()
+        nfo = self._get_solver_cb(solver, attached_solver)(intern_x0, **kwargs)
+        self.internal_x = nfo['x'].copy()
         return self.post_process(self.internal_x,
-                                 self.internal_params)[:1] + (info,)
+                                 self.internal_params)[:1] + (nfo,)
 
     def _solve_scipy(self, intern_x0, tol=1e-8, method=None, **kwargs):
         """
@@ -312,6 +312,39 @@ generated/scipy.optimize.root.html
             Jout[:, :] = res[:, :]
 
         return pykinsol.solve(_f, _j, intern_x0, **kwargs)
+
+    def _solve_mpmath(self, intern_x0, dps=30, tol=None,
+                      maxsteps=None, **kwargs):
+        import mpmath
+        from mpmath.calculus.optimization import MDNewton
+        mp = mpmath.mp
+        mp.dps = dps
+        maxsteps = maxsteps or MDNewton.maxsteps
+        tol = tol or mp.eps * 1024
+
+        def f_cb(*x):
+            f_cb.nfev += 1
+            return self.f_callback(x, self.internal_params)
+        f_cb.nfev = 0
+
+        def j_cb(*x):
+            j_cb.njev += 1
+            return self.j_callback(x, self.internal_params)
+        j_cb.njev = 0
+
+        iters = MDNewton(mp, f_cb, intern_x0, J=j_cb, norm=mp.norm,
+                         verbose=False, **kwargs)
+        i = 0
+        success = False
+        for x, err in iters:
+            i += 1
+            if err < tol*max(mp.norm(x), 1):
+                success = True
+                break
+            if i >= maxsteps:
+                break
+        return {'x': x, 'success': success,
+                'nfev': f_cb.nfev, 'njev': j_cb.njev, 'nit': i}
 
 
 class ConditionalNeqSys(_NeqSysBase):
