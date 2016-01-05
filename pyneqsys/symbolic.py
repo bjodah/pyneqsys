@@ -12,15 +12,15 @@ from pyodesys.util import banded_jacobian, check_transforms
 from .core import NeqSys, _ensure_2args  # , ChainedNeqSys
 
 
-def map2(cb, iterable):  # Py2 type of map in Py3
+def _map2(cb, iterable):  # Py2 type of map in Py3
     if cb is None:  # identity function is assumed
         return iterable
     else:
         return map(cb, iterable)
 
 
-def map2l(cb, iterable):  # Py2 type of map in Py3
-    return list(map2(cb, iterable))
+def _map2l(cb, iterable):  # Py2 type of map in Py3
+    return list(_map2(cb, iterable))
 
 
 class SymbolicSys(NeqSys):
@@ -159,7 +159,7 @@ class TransformedSys(SymbolicSys):
         check_transforms(self.fw, self.bw, x)
         exprs = [e.subs(zip(x, self.fw)) for e in exprs]
         super(TransformedSys, self).__init__(
-            x, map2l(post_adj, exprs), params,
+            x, _map2l(post_adj, exprs), params,
             pre_processors=[lambda xarr, params: (self.bw_cb(*xarr), params)],
             post_processors=[lambda xarr, params: (self.fw_cb(*xarr), params)],
             **kwargs)
@@ -189,8 +189,8 @@ class TransformedSys(SymbolicSys):
                        transf_cbs[idx][1](xi))
                       for idx, xi in enumerate(x)]
         except TypeError:
-            transf = zip(map2(transf_cbs[0], x), map2(transf_cbs[1], x))
-        return cls(x, map2l(pre_adj, cb(x, p)), transf, p, **kwargs)
+            transf = zip(_map2(transf_cbs[0], x), _map2(transf_cbs[1], x))
+        return cls(x, _map2l(pre_adj, cb(x, p)), transf, p, **kwargs)
 
 
 def linear_rref(A, b, Matrix=None, S=None):
@@ -213,7 +213,7 @@ def linear_rref(A, b, Matrix=None, S=None):
         from sympy import Matrix
     if S is None:
         from sympy import S
-    mat_rows = [map2l(S, list(row) + [v]) for row, v in zip(A, b)]
+    mat_rows = [_map2l(S, list(row) + [v]) for row, v in zip(A, b)]
     aug = Matrix(mat_rows)
     raug, pivot = aug.rref()
     nindep = len(pivot)

@@ -511,10 +511,11 @@ class ChainedNeqSys(_NeqSysBase):
         self.internal_params = params
         info_dict = {
             'success': info['success'],
-            'fun': info['fun'],
             'nfev': sum([nfo['nfev'] for nfo in info_vec]),
             'njev': sum([nfo.get('njev', 0) for nfo in info_vec]),
         }
+        if 'fun' in info:
+            info_dict['fun'] = info['fun']
         info_dict['x_vecs'] = x_vecs
         info_dict['intermediate_info'] = info_vec
         info_dict['internal_x_vecs'] = internal_x_vecs
