@@ -286,7 +286,6 @@ generated/scipy.optimize.root.html
             warnings.warn("Band argument ignored (see SciPy docs)")
             new_kwargs['band'] = self.band
         new_kwargs['args'] = self.internal_params
-        # np.atleast_1d(np.array(self.internal_params, dtype=np.float64))
 
         return root(self.f_callback, intern_x0,
                     jac=self.j_callback, method=method, tol=tol,
