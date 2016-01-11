@@ -7,8 +7,9 @@ v0.3.0
 - Added ChainedNeqSys
 - In NeqSys.solve() arg "solver" may now be None -> $NEQSYS_SOLVER
 - In NeqSys.solve() arg "solver" may now be a callable
-- NeqSys.plot_series changed signature
+- NeqSys.plot_series & NeqSys.solve_and_plot_series changed signature
 - New methods: NeqSys.plot_series_residuals(_internal)
+- Logic in NeqSys.solve_series() changed slightly
 
 v0.2.1
 ======
