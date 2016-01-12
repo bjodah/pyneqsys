@@ -10,3 +10,4 @@ doc
 .coverage
 htmlcov
 deploy
+**.egg-info/
