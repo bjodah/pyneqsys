@@ -24,9 +24,9 @@ test:
     imports:
         - pyneqsys
     requires:
-        - pytest
+        - nose
     commands:
-        - py.test --pyargs pyneqsys
+        - nosetests pyneqsys
 
 about:
     home: https://github.com/bjodah/pyneqsys
