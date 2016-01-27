@@ -32,7 +32,7 @@ def plot_series(xres, varied_data, indices=None, info_dicts=None,
     else:
         plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
 
-    for idx in range(xres.shape[1]):
+    for idx in indices:
         plot(varied_data, xres[:, idx], **plot_kwargs_cb(
             idx, labels=labels))
 
