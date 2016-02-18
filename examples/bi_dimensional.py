@@ -4,7 +4,7 @@
 import sympy as sp
 import numpy as np
 
-from pyneqsys import SymbolicSys
+from pyneqsys.symbolic import SymbolicSys
 
 
 def solve(init_a, init_b, power, solver='scipy'):

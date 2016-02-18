@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
-from .. import SymbolicSys
-from .test_core import f
+import pytest
 
-import pysym  # minimal alternative to SymPy
+try:
+    import pysym
+except ImportError:
+    pysym = None
+else:
+    from ..symbolic import SymbolicSys
+    from .test_core import f
 
 
+@pytest.mark.skipif(pysym is None, reason="pysym missing")
 def test_pysym_SymbolicSys_from_callback():
     ss = SymbolicSys.from_callback(
         f, 2, 1,

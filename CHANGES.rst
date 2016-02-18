@@ -1,3 +1,8 @@
+v0.4.0
+======
+- import SymbolicSys from pyneqsys.symbolic
+- support for ipopt
+
 v0.3.0
 ======
 - New solvers: 'mpmath' (requires mpmath) and 'kinsol' (requires pykinsol)
