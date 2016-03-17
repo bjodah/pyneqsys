@@ -18,7 +18,11 @@ if os.environ.get('CONDA_BUILD', '0') == '1':
     except IOError:
         pass
 
-release_py_path = os.path.join(pkg_name, '_release.py')
+
+def _path_under_setup(*args):
+    return os.path.join(os.path.dirname(__file__), *args)
+
+release_py_path = _path_under_setup(pkg_name, '_release.py')
 
 if (len(PYNEQSYS_RELEASE_VERSION) > 1 and
    PYNEQSYS_RELEASE_VERSION[0] == 'v'):
@@ -41,7 +45,7 @@ tests = [
     'pyneqsys.tests',
 ]
 
-with open(os.path.join(pkg_name, '__init__.py')) as f:
+with open(_path_under_setup(pkg_name, '__init__.py')) as f:
     long_description = f.read().split('"""')[1]
 
 descr = 'Solving of symbolic systems of non-linear equations numerically.'

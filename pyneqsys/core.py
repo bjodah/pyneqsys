@@ -30,7 +30,7 @@ def _ensure_2args(func):
     if func is None:
         return None
     if len(inspect.getargspec(func)[0]) == 1:
-        return lambda x, params: func(x)
+        return lambda x, params=(): func(x)
     else:
         return func
 
@@ -392,6 +392,12 @@ generated/scipy.optimize.root.html
                 break
         return {'x': x, 'success': success,
                 'nfev': f_cb.nfev, 'njev': j_cb.njev, 'nit': i}
+
+    def _solve_ipopt(self, intern_x0, **kwargs):
+        import warnings
+        from ipopt import minimize_ipopt
+        warnings.warn("ipopt interface untested at the moment")
+        return minimize_ipopt(self.f_callback, intern_x0, jac=self.j_callback)
 
 
 class ConditionalNeqSys(_NeqSysBase):

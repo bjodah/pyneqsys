@@ -22,4 +22,3 @@ from __future__ import absolute_import
 
 from ._release import __version__
 from .core import NeqSys, ConditionalNeqSys, ChainedNeqSys
-from .symbolic import SymbolicSys

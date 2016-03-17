@@ -7,8 +7,7 @@ from __future__ import (absolute_import, division, print_function)
 import sympy as sp
 import numpy as np
 
-from pyneqsys import SymbolicSys
-from pyneqsys.symbolic import linear_exprs
+from pyneqsys.symbolic import SymbolicSys, linear_exprs
 
 
 def main(init_conc='1e-7,1e-7,1e-7,1,55.5',

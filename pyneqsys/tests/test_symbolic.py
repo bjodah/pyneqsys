@@ -1,12 +1,19 @@
 from __future__ import print_function, absolute_import, division
 
-import sympy as sp
+import pytest
 
-from .. import SymbolicSys
-from ..symbolic import linear_exprs, TransformedSys
+try:
+    import sympy as sp
+    from ..symbolic import SymbolicSys, linear_exprs, TransformedSys
+except ImportError:
+    missing_import = True
+else:
+    missing_import = False
+
 from .test_core import f
 
 
+@pytest.mark.skipif(missing_import, reason="pyneqsys.symbolic req. missing")
 def test_SymbolicSys():
     # from: http://stackoverflow.com/questions/33135238
     a, b, t = sp.symbols('a b t')
@@ -20,6 +27,7 @@ def test_SymbolicSys():
     assert abs(ab[1] - (1/2 - 5**0.5/2)) < 1e-10
 
 
+@pytest.mark.skipif(missing_import, reason="pyneqsys.symbolic req. missing")
 def test_symbolicsys__from_callback():
     ss = SymbolicSys.from_callback(f, 2, 1)
     x, sol = ss.solve([1, 0], [3], solver='scipy')
@@ -28,6 +36,7 @@ def test_symbolicsys__from_callback():
     assert abs(x[1] - 0.1588361) < 2e-7
 
 
+@pytest.mark.skipif(missing_import, reason="pyneqsys.symbolic req. missing")
 def test_symbolicsys__from_callback__no_params():
     def _nf(x):
         return f(x, [3])
@@ -39,6 +48,7 @@ def test_symbolicsys__from_callback__no_params():
     assert abs(x[1] - 0.1588361) < 2e-7
 
 
+@pytest.mark.skipif(missing_import, reason="pyneqsys.symbolic req. missing")
 def test_TransformedSys__from_callback():
     ts = TransformedSys.from_callback(f, (sp.exp, sp.log), 2, 1)
     x, sol = ts.solve([1, .1], [3], solver='scipy')
@@ -47,6 +57,7 @@ def test_TransformedSys__from_callback():
     assert abs(x[1] - 0.1588361) < 2e-7
 
 
+@pytest.mark.skipif(missing_import, reason="pyneqsys.symbolic req. missing")
 def test_linear_exprs():
     a, b, c = x = sp.symarray('x', 3)
     coeffs = [[1, 3, -2],

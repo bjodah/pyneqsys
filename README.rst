@@ -47,7 +47,7 @@ Example reformulated from `SciPy documentation <http://docs.scipy.org/doc/scipy/
 
 .. code:: python
 
-   >>> from pyneqsys import SymbolicSys
+   >>> from pyneqsys.symbolic import SymbolicSys
    >>> neqsys = SymbolicSys.from_callback(
    ...     lambda x: [(x[0] - x[1])**3/2 + x[0] - 1,
    ...                (x[1] - x[0])**3/2 + x[1]], 2)
