@@ -1,7 +1,8 @@
 v0.4.0
 ======
 - import SymbolicSys from pyneqsys.symbolic
-- support for ipopt
+- provisional support for ipopt
+- backend kwarg expected in callbacks pass to SymbolicSys.from_callback()
 
 v0.3.0
 ======

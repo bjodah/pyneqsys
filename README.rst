@@ -57,7 +57,7 @@ Example reformulated from `SciPy documentation <http://docs.scipy.org/doc/scipy/
    [ 0.8411639  0.1588361]
 
 here we did not need to enter the jacobian manually, SymPy did that for us.
-For expressions containing transcedental functions we need to provide a
+For expressions containing transcendental functions we need to provide a
 "backend" keyword arguemnt to enable symbolic derivation of the jacobian:
 
 .. code:: python

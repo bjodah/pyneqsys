@@ -94,7 +94,10 @@ class SymbolicSys(NeqSys):
             import sympy as backend
         x = kwargs.get('symarray', _symarray())('x', nx)
         p = kwargs.get('symarray', _symarray())('p', nparams)
-        exprs = _ensure_3args(cb)(x, p, backend)
+        try:
+            exprs = cb(x, p, backend)
+        except TypeError:
+            exprs = _ensure_3args(cb)(x, p, backend)
         return cls(x, exprs, p, **kwargs)
 
     def get_jac(self):
@@ -190,8 +193,11 @@ class TransformedSys(SymbolicSys):
                       for idx, xi in enumerate(x)]
         except TypeError:
             transf = zip(_map2(transf_cbs[0], x), _map2(transf_cbs[1], x))
-        return cls(x, _map2l(pre_adj, _ensure_3args(cb)(x, p, backend)),
-                   transf, p, **kwargs)
+        try:
+            exprs = cb(x, p, backend)
+        except TypeError:
+            exprs = _ensure_3args(cb)(x, p, backend)
+        return cls(x, _map2l(pre_adj, exprs), transf, p, **kwargs)
 
 
 def linear_rref(A, b, Matrix=None, S=None):
