@@ -9,7 +9,7 @@ from pyodesys.symbolic import (
 )
 from pyodesys.util import banded_jacobian, check_transforms
 
-from .core import NeqSys, _ensure_2args  # , ChainedNeqSys
+from .core import NeqSys, _ensure_3args  # , ChainedNeqSys
 
 
 def _map2(cb, iterable):  # Py2 type of map in Py3
@@ -88,13 +88,13 @@ class SymbolicSys(NeqSys):
                                           **kwargs)
 
     @classmethod
-    def from_callback(cls, cb, nx, nparams=0, **kwargs):
+    def from_callback(cls, cb, nx, nparams=0, backend=None, **kwargs):
         """ Generate a SymbolicSys instance from a callback"""
+        if backend is None:
+            import sympy as backend
         x = kwargs.get('symarray', _symarray())('x', nx)
         p = kwargs.get('symarray', _symarray())('p', nparams)
-        if nparams == 0:
-            cb = _ensure_2args(cb)
-        exprs = cb(x, p)
+        exprs = _ensure_3args(cb)(x, p, backend)
         return cls(x, exprs, p, **kwargs)
 
     def get_jac(self):
@@ -167,7 +167,7 @@ class TransformedSys(SymbolicSys):
         self.bw_cb = self.lambdify(x, self.bw)
 
     @classmethod
-    def from_callback(cls, cb, transf_cbs, nx, nparams=0,
+    def from_callback(cls, cb, transf_cbs, nx, nparams=0, backend=None,
                       pre_adj=None, **kwargs):
         """ Generate a TransformedSys instance from a callback
 
@@ -180,17 +180,18 @@ class TransformedSys(SymbolicSys):
         pre_adj: callable
         \*\*kwargs: passed onto TransformedSys
         """
+        if backend is None:
+            import sympy as backend
         x = kwargs.get('symarray', _symarray())('x', nx)
         p = kwargs.get('symarray', _symarray())('p', nparams)
-        if nparams == 0:
-            cb = _ensure_2args(cb)
         try:
             transf = [(transf_cbs[idx][0](xi),
                        transf_cbs[idx][1](xi))
                       for idx, xi in enumerate(x)]
         except TypeError:
             transf = zip(_map2(transf_cbs[0], x), _map2(transf_cbs[1], x))
-        return cls(x, _map2l(pre_adj, cb(x, p)), transf, p, **kwargs)
+        return cls(x, _map2l(pre_adj, _ensure_3args(cb)(x, p, backend)),
+                   transf, p, **kwargs)
 
 
 def linear_rref(A, b, Matrix=None, S=None):

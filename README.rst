@@ -56,7 +56,23 @@ Example reformulated from `SciPy documentation <http://docs.scipy.org/doc/scipy/
    >>> print(x)
    [ 0.8411639  0.1588361]
 
-here we did not need to enter the jacobian manually, SymPy did that for us. For more examples look see
+here we did not need to enter the jacobian manually, SymPy did that for us.
+For expressions containing transcedental functions we need to provide a
+"backend" keyword arguemnt to enable symbolic derivation of the jacobian:
+
+.. code:: python
+
+   >>> import math
+   >>> def powell(x, params, backend=math):
+   ...     A, exp = params[0], backend.exp
+   ...     return A*x[0]*x[1] - 1, exp(-x[0]) + exp(-x[1]) - (1 + A**-1)
+   >>> powell_sys = SymbolicSys.from_callback(powell, 2, 1)
+   >>> x, info = powell_sys.solve([1, 1], [1000.0])
+   >>> assert info['success']
+   >>> print(x)
+   [  6.76999562e+00   1.47710584e-04]
+
+For more examples look see
 `examples/ <https://github.com/bjodah/pyneqsys/tree/master/examples>`_, and rendered jupyter notebooks here:
 `<http://hera.physchem.kth.se/~pyneqsys/branches/master/examples>`_
 
