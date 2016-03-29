@@ -3,6 +3,7 @@
 from __future__ import absolute_import, division, print_function
 
 import inspect
+import math
 import os
 import warnings
 
@@ -26,13 +27,17 @@ except ImportError:
             return fun
 
 
-def _ensure_2args(func):
+def _ensure_3args(func):
     if func is None:
         return None
-    if len(inspect.getargspec(func)[0]) == 1:
-        return lambda x, params=(): func(x)
-    else:
+    if len(inspect.getargspec(func)[0]) == 3:
         return func
+    if len(inspect.getargspec(func)[0]) == 2:
+        return lambda x, params=(), backend=math: func(x, params)
+    elif len(inspect.getargspec(func)[0]) == 1:
+        return lambda x, params=(), backend=math: func(x)
+    else:
+        raise ValueError("Incorrect numer of arguments")
 
 
 class _NeqSysBase(object):
@@ -218,8 +223,8 @@ class NeqSys(_NeqSysBase):
         if nf < nx:
             raise ValueError("Under-determined system")
         self.nf, self.nx = nf, nx
-        self.f_callback = _ensure_2args(f)
-        self.j_callback = _ensure_2args(jac)
+        self.f_callback = _ensure_3args(f)
+        self.j_callback = _ensure_3args(jac)
         self.band = band
         self.names = names
         self.pre_processors = pre_processors or []
