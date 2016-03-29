@@ -1,32 +1,32 @@
 package:
-    name: pyneqsys
-    version: 0.4.0.git
+  name: pyneqsys
+  version: 0.4.0.git
 
 source:
-    path: ../
+  path: ../
 
 build:
-    number: 0
+  number: 0
 
 requirements:
-    build:
-        - python
-        - numpy
-    run:
-        - python
-        - numpy
-        - sympy
-        - scipy
-        - pyodesys
+  build:
+    - python
+    - numpy
+  run:
+    - python
+    - numpy
+    - sympy
+    - scipy
+    - pyodesys
 
 test:
-    imports:
-        - pyneqsys
-    requires:
-        - nose
-    commands:
-        - nosetests pyneqsys
+  imports:
+    - pyneqsys
+  requires:
+    - nose
+  commands:
+    - nosetests pyneqsys
 
 about:
-    home: https://github.com/bjodah/pyneqsys
-    license: BSD
+  home: https://github.com/bjodah/pyneqsys
+  license: BSD
