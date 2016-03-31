@@ -62,7 +62,7 @@ def test_SymbolicSys__from_callback__method():
 
     class Problem(object):
         def f(self, x, p):
-            return x[0]**p[0]
+            return [x[0]**p[0]]
 
     p = Problem()
     ss = SymbolicSys.from_callback(p.f, 1, 1)

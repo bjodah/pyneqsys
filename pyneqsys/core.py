@@ -30,11 +30,12 @@ except ImportError:
 def _ensure_3args(func):
     if func is None:
         return None
-    if len(inspect.getargspec(func)[0]) == 3:
+    self_arg = 1 if inspect.ismethod(func) else 0
+    if len(inspect.getargspec(func)[0]) == 3 + self_arg:
         return func
-    if len(inspect.getargspec(func)[0]) == 2:
+    if len(inspect.getargspec(func)[0]) == 2 + self_arg:
         return lambda x, params=(), backend=math: func(x, params)
-    elif len(inspect.getargspec(func)[0]) == 1:
+    elif len(inspect.getargspec(func)[0]) == 1 + self_arg:
         return lambda x, params=(), backend=math: func(x)
     else:
         raise ValueError("Incorrect numer of arguments")
