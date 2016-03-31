@@ -58,6 +58,19 @@ def test_TransformedSys__from_callback():
 
 
 @pytest.mark.skipif(missing_import, reason="pyneqsys.symbolic req. missing")
+def test_SymbolicSys__from_callback__method():
+
+    class Problem(object):
+        def f(self, x, p):
+            return [x[0]**p[0]]
+
+    p = Problem()
+    ss = SymbolicSys.from_callback(p.f, 1, 1)
+    x, sol = ss.solve([1], [3])
+    assert abs(x[0]) < 1e-14
+
+
+@pytest.mark.skipif(missing_import, reason="pyneqsys.symbolic req. missing")
 def test_linear_exprs():
     a, b, c = x = sp.symarray('x', 3)
     coeffs = [[1, 3, -2],

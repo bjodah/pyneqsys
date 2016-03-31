@@ -1,3 +1,7 @@
+v0.4.1
+======
+- SymbolicSys.from_callback can now handle methods.
+
 v0.4.0
 ======
 - import SymbolicSys from pyneqsys.symbolic
