@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import io
 import os
 import shutil
 from setuptools import setup
@@ -8,13 +9,13 @@ from setuptools import setup
 
 pkg_name = 'pyneqsys'
 
-PYNEQSYS_RELEASE_VERSION = os.environ.get('PYNEQSYS_RELEASE_VERSION', '')
+RELEASE_VERSION = os.environ.get('PYNEQSYS_RELEASE_VERSION', '')
 
 # http://conda.pydata.org/docs/build.html#environment-variables-set-during-the-build-process
 if os.environ.get('CONDA_BUILD', '0') == '1':
     try:
-        PYNEQSYS_RELEASE_VERSION = 'v' + open(
-            '__conda_version__.txt', 'rt').readline().rstrip()
+        RELEASE_VERSION = 'v' + io.open('__conda_version__.txt', 'rt',
+                                        encoding='utf-8').readline().rstrip()
     except IOError:
         pass
 
@@ -24,14 +25,13 @@ def _path_under_setup(*args):
 
 release_py_path = _path_under_setup(pkg_name, '_release.py')
 
-if (len(PYNEQSYS_RELEASE_VERSION) > 1 and
-   PYNEQSYS_RELEASE_VERSION[0] == 'v'):
+if len(RELEASE_VERSION) > 1 and RELEASE_VERSION[0] == 'v':
     TAGGED_RELEASE = True
-    __version__ = PYNEQSYS_RELEASE_VERSION[1:]
+    __version__ = RELEASE_VERSION[1:]
 else:
     TAGGED_RELEASE = False
     # read __version__ attribute from _release.py:
-    exec(open(release_py_path).read())
+    exec(io.open(release_py_path, encoding='utf-8').read())
 
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -45,7 +45,8 @@ tests = [
     'pyneqsys.tests',
 ]
 
-with open(_path_under_setup(pkg_name, '__init__.py')) as f:
+with io.open(_path_under_setup(pkg_name, '__init__.py'),
+             encoding='utf-8') as f:
     long_description = f.read().split('"""')[1]
 
 descr = 'Solving of symbolic systems of non-linear equations numerically.'
@@ -71,7 +72,7 @@ if __name__ == '__main__':
             # depending on tagged version (set PYNEQSYS_RELEASE_VERSION)
             # this will ensure source distributions contain the correct version
             shutil.move(release_py_path, release_py_path+'__temp__')
-            open(release_py_path, 'wt').write(
+            io.open(release_py_path, 'wt', encoding='utf-8').write(
                 "__version__ = '{}'\n".format(__version__))
         setup(**setup_kwargs)
     finally:
