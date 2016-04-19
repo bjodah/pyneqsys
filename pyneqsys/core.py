@@ -260,9 +260,10 @@ class NeqSys(_NeqSysBase):
         internal_x0: 1D array of floats (default: None)
             When given it overrides (processed) ``x0``. ``internal_x0`` is not
             subject to ``self.post_processors``.
-        solver: str or callable or None
-            if str: uses _solve_``solver``(\*args, \*\*kwargs)
-            if ``None``: chooses from PYNEQSYS_SOLVER environment variable
+        solver: str or callable or None or iterable of such
+            if str: uses _solve_``solver``(\*args, \*\*kwargs).
+            if ``None``: chooses from PYNEQSYS_SOLVER environment variable.
+            if iterable: chain solving.
         attached_solver: callable factory
             invokes: solver = attached_solver(self)
 
@@ -272,17 +273,35 @@ class NeqSys(_NeqSysBase):
             solution vector (post-processed by self.post_processors)
         dict:
             info dictionary containing 'success', 'nfev', 'njev' etc.
-        """
-        intern_x0, self.internal_params = self.pre_process(x0, params)
-        if internal_x0 is not None:
-            intern_x0 = internal_x0
-        elif self.internal_x0_cb is not None:
-            intern_x0 = self.internal_x0_cb(x0, params)
 
-        nfo = self._get_solver_cb(solver, attached_solver)(intern_x0, **kwargs)
-        self.internal_x = nfo['x'].copy()
-        return self.post_process(self.internal_x,
-                                 self.internal_params)[:1] + (nfo,)
+        Examples
+        --------
+        >>> neqsys = NeqSys(2, 2, lambda x, p: [
+        ...     (x[0] - x[1])**p[0]/2 + x[0] - 1,
+        ...     (x[1] - x[0])**p[0]/2 + x[1]
+        ... ])
+        >>> x, sol = neqsys.solve([1, 0], [3], solver=(None, 'mpmath'))
+        >>> assert sol['success']
+        >>> print(x)
+        [0.841163901914009663684741869855]
+        [0.158836098085990336315258130144]
+
+        """
+        if not isinstance(solver, (tuple, list)):
+            solver = [solver]
+        if not isinstance(attached_solver, (tuple, list)):
+            attached_solver = [attached_solver] + [None]*(len(solver) - 1)
+        for solv, attached_solv in zip(solver, attached_solver):
+            intern_x0, self.internal_params = self.pre_process(x0, params)
+            if internal_x0 is not None:
+                intern_x0 = internal_x0
+            elif self.internal_x0_cb is not None:
+                intern_x0 = self.internal_x0_cb(x0, params)
+
+            nfo = self._get_solver_cb(solv, attached_solv)(intern_x0, **kwargs)
+            self.internal_x = nfo['x'].copy()
+            x0 = self.post_process(self.internal_x, self.internal_params)[0]
+        return x0, nfo
 
     def _solve_scipy(self, intern_x0, tol=1e-8, method=None, **kwargs):
         """
@@ -380,12 +399,14 @@ generated/scipy.optimize.root.html
             return self.f_callback(x, self.internal_params)
         f_cb.nfev = 0
 
-        def j_cb(*x):
-            j_cb.njev += 1
-            return self.j_callback(x, self.internal_params)
-        j_cb.njev = 0
+        if self.j_callback is not None:
+            def j_cb(*x):
+                j_cb.njev += 1
+                return self.j_callback(x, self.internal_params)
+            j_cb.njev = 0
+            kwargs['J'] = j_cb
 
-        iters = MDNewton(mp, f_cb, intern_x0, J=j_cb, norm=mp.norm,
+        iters = MDNewton(mp, f_cb, tuple(intern_x0), norm=mp.norm,
                          verbose=False, **kwargs)
         i = 0
         success = False
@@ -396,8 +417,10 @@ generated/scipy.optimize.root.html
                 break
             if i >= maxsteps:
                 break
-        return {'x': x, 'success': success,
-                'nfev': f_cb.nfev, 'njev': j_cb.njev, 'nit': i}
+        result = {'x': x, 'success': success, 'nfev': f_cb.nfev, 'nit': i}
+        if self.j_callback is not None:
+            result['njev'] = j_cb.njev
+        return result
 
     def _solve_ipopt(self, intern_x0, **kwargs):
         import warnings

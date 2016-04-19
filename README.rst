@@ -69,8 +69,8 @@ For expressions containing transcendental functions we need to provide a
    >>> powell_sys = SymbolicSys.from_callback(powell, 2, 1)
    >>> x, info = powell_sys.solve([1, 1], [1000.0])
    >>> assert info['success']
-   >>> print(', '.join(['%.6e' % _ for _ in x]))
-   6.769996e+00, 1.477106e-04
+   >>> print(', '.join(['%.6e' % _ for _ in sorted(x)]))
+   1.477106e-04, 6.769996e+00
 
 For more examples look see
 `examples/ <https://github.com/bjodah/pyneqsys/tree/master/examples>`_, and rendered jupyter notebooks here:
