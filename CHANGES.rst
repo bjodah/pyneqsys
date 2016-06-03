@@ -1,3 +1,7 @@
+v0.4.2
+======
+- Support for chained solvers
+
 v0.4.1
 ======
 - SymbolicSys.from_callback can now handle methods.
