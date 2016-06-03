@@ -72,7 +72,7 @@ if __name__ == '__main__':
             # depending on tagged version (set PYNEQSYS_RELEASE_VERSION)
             # this will ensure source distributions contain the correct version
             shutil.move(release_py_path, release_py_path+'__temp__')
-            io.open(release_py_path, 'wt', encoding='utf-8').write(
+            open(release_py_path, 'wt').write(
                 "__version__ = '{}'\n".format(__version__))
         setup(**setup_kwargs)
     finally:
