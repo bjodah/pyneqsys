@@ -434,17 +434,17 @@ class ConditionalNeqSys(_NeqSysBase):
     conditionals.
 
     If a problem in a fixed number of variables is described by different
-    systems of equations this class may be used to describe that set of
-    systems.
+    systems of equations for different domains, then this class may be used
+    to describe that set of systems.
 
     The user provides a set of conditions which governs what system of
     equations to apply. The set of conditions then represent a vector
-    of booleans which is passed to a user provided NeqSys-factory.
-    The conditions may be asymmetrical (each condition consits of two
-    callbacks, one for evaluating when the condition was previously False,
-    and one when it was previously False. The motivation for this asymmetry
-    is that a user may want to introduce a tolerance for numerical noise in
-    the solution (and avoid possibly infinite recursion).
+    of booleans which is passed to a user provided factory function of
+    NeqSys instances. The conditions may be asymmetrical (each condition
+    consits of two callbacks, one for evaluating when the condition was
+    previously False, and one when it was previously True. The motivation
+    for this asymmetry is that a user may want to introduce a tolerance for
+    numerical noise in the solution (and avoid possibly endless loops).
 
     If ``fastcache`` is available an LRU cache will be used for
     ``neqsys_factory``, it is therefore important that the function is
