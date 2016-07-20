@@ -4,15 +4,14 @@ from __future__ import absolute_import, division, print_function
 
 from itertools import chain
 
-from pyodesys.symbolic import (
-    _lambdify, _lambdify_unpack, _Matrix, _Symbol, _Dummy, _symarray
-)
+import numpy as np
+from sym import Backend
 from pyodesys.util import banded_jacobian, check_transforms
 
-from .core import NeqSys, _ensure_3args  # , ChainedNeqSys
+from .core import NeqSys, _ensure_3args
 
 
-def _map2(cb, iterable):  # Py2 type of map in Py3
+def _map2(cb, iterable):
     if cb is None:  # identity function is assumed
         return iterable
     else:
@@ -38,12 +37,6 @@ class SymbolicSys(NeqSys):
             do not compute jacobian (numeric approximation)
         If ImmutableMatrix:
             user provided expressions for the jacobian
-    lambdify: callback
-        default: ``sympy.lambdify``
-    lambdify_unpack: bool (default: True)
-        whether or not unpacking of args needed when calling lambdify callback
-    Matrix: class
-        default: sympy.Matrix
     \*\*kwargs:
         See :py:class:`pyneqsys.core.NeqSys`
 
@@ -62,24 +55,18 @@ class SymbolicSys(NeqSys):
 
     Notes
     -----
-    Works for a moderate number of unknowns, ``sympy.lambdify`` has
-    an upper limit on number of arguments.
+    When using SymPy as backend a limited number of unknowns is supported.
+    The reason is that (currently) ``sympy.lambdify`` has an upper limit on
+    number of arguments.
+
     """
 
-    def __init__(self, x, exprs, params=(), jac=True, lambdify=None,
-                 lambdify_unpack=True, Matrix=None, Symbol=None, Dummy=None,
-                 symarray=None, **kwargs):
+    def __init__(self, x, exprs, params=(), jac=True, backend=None, **kwargs):
         self.x = x
         self.exprs = exprs
         self.params = params
         self._jac = jac
-        self.lambdify = lambdify or _lambdify()
-        self.lambdify_unpack = (_lambdify_unpack() if lambdify_unpack is None
-                                else lambdify_unpack)
-        self.Matrix = Matrix or _Matrix()
-        self.Symbol = Symbol or _Symbol()
-        self.Dummy = Dummy or _Dummy()
-        self.symarray = symarray or _symarray()
+        self.be = Backend(backend)
         self.nf, self.nx = len(exprs), len(x)  # needed by get_*_callback
         self.band = kwargs.get('band', None)  # needed by get_*_callback
         super(SymbolicSys, self).__init__(self.nf, self.nx,
@@ -88,27 +75,27 @@ class SymbolicSys(NeqSys):
                                           **kwargs)
 
     @classmethod
-    def from_callback(cls, cb, nx, nparams=0, backend=None, **kwargs):
+    def from_callback(cls, cb, nx, nparams=0, **kwargs):
         """ Generate a SymbolicSys instance from a callback"""
-        if backend is None:
-            import sympy as backend
-        x = kwargs.get('symarray', _symarray())('x', nx)
-        p = kwargs.get('symarray', _symarray())('p', nparams)
+        be = Backend(kwargs.pop('backend', None))
+        x = be.real_symarray('x', nx)
+        p = be.real_symarray('p', nparams)
         try:
-            exprs = cb(x, p, backend)
+            exprs = cb(x, p, be)
         except TypeError:
-            exprs = _ensure_3args(cb)(x, p, backend)
-        return cls(x, exprs, p, **kwargs)
+            exprs = _ensure_3args(cb)(x, p, be)
+        return cls(x, exprs, p, backend=be, **kwargs)
 
     def get_jac(self):
         """ Return the jacobian of the expressions """
         if self._jac is True:
             if self.band is None:
-                f = self.Matrix(1, self.nf, lambda _, q: self.exprs[q])
-                return f.jacobian(self.x)
+                f = self.be.Matrix(self.nf, 1, self.exprs)
+                _x = self.be.Matrix(self.nx, 1, self.x)
+                return f.jacobian(_x)
             else:
                 # Banded
-                return self.Matrix(banded_jacobian(
+                return self.be.Matrix(banded_jacobian(
                     self.exprs, self.x, *self.band))
         elif self._jac is False:
             return False
@@ -116,25 +103,18 @@ class SymbolicSys(NeqSys):
             return self._jac
 
     def _get_f_callback(self):
-        cb = self.lambdify(list(chain(self.x, self.params)), self.exprs)
+        args = list(chain(self.x, self.params))
+        cb = self.be.Lambdify(args, self.exprs)
 
         def f(x, params):
-            new_args = list(chain(x, params))
-            if self.lambdify_unpack:
-                return cb(*new_args)
-            else:
-                return cb(new_args)
+            return cb(np.concatenate((x, params), axis=-1))
         return f
 
     def _get_j_callback(self):
-        cb = self.lambdify(list(chain(self.x, self.params)), self.get_jac())
+        cb = self.be.Lambdify(list(chain(self.x, self.params)), self.get_jac())
 
         def j(x, params):
-            new_args = list(chain(x, params))
-            if self.lambdify_unpack:
-                return cb(*new_args)
-            else:
-                return cb(new_args)
+            return cb(np.concatenate((x, params), axis=-1))
         return j
 
 
@@ -163,15 +143,15 @@ class TransformedSys(SymbolicSys):
         exprs = [e.subs(zip(x, self.fw)) for e in exprs]
         super(TransformedSys, self).__init__(
             x, _map2l(post_adj, exprs), params,
-            pre_processors=[lambda xarr, params: (self.bw_cb(*xarr), params)],
-            post_processors=[lambda xarr, params: (self.fw_cb(*xarr), params)],
+            pre_processors=[lambda xarr, params: (self.bw_cb(xarr), params)],
+            post_processors=[lambda xarr, params: (self.fw_cb(xarr), params)],
             **kwargs)
-        self.fw_cb = self.lambdify(x, self.fw)
-        self.bw_cb = self.lambdify(x, self.bw)
+        self.fw_cb = self.be.Lambdify(x, self.fw)
+        self.bw_cb = self.be.Lambdify(x, self.bw)
 
     @classmethod
-    def from_callback(cls, cb, transf_cbs, nx, nparams=0, backend=None,
-                      pre_adj=None, **kwargs):
+    def from_callback(cls, cb, transf_cbs, nx, nparams=0, pre_adj=None,
+                      **kwargs):
         """ Generate a TransformedSys instance from a callback
 
         Parameters
@@ -183,10 +163,9 @@ class TransformedSys(SymbolicSys):
         pre_adj: callable
         \*\*kwargs: passed onto TransformedSys
         """
-        if backend is None:
-            import sympy as backend
-        x = kwargs.get('symarray', _symarray())('x', nx)
-        p = kwargs.get('symarray', _symarray())('p', nparams)
+        be = Backend(kwargs.pop('backend', None))
+        x = be.real_symarray('x', nx)
+        p = be.real_symarray('p', nparams)
         try:
             transf = [(transf_cbs[idx][0](xi),
                        transf_cbs[idx][1](xi))
@@ -194,10 +173,10 @@ class TransformedSys(SymbolicSys):
         except TypeError:
             transf = zip(_map2(transf_cbs[0], x), _map2(transf_cbs[1], x))
         try:
-            exprs = cb(x, p, backend)
+            exprs = cb(x, p, be)
         except TypeError:
-            exprs = _ensure_3args(cb)(x, p, backend)
-        return cls(x, _map2l(pre_adj, exprs), transf, p, **kwargs)
+            exprs = _ensure_3args(cb)(x, p, be)
+        return cls(x, _map2l(pre_adj, exprs), transf, p, backend=be, **kwargs)
 
 
 def linear_rref(A, b, Matrix=None, S=None):
@@ -215,6 +194,7 @@ def linear_rref(A, b, Matrix=None, S=None):
     Returns
     -------
     A', b' - transformed versions
+
     """
     if Matrix is None:
         from sympy import Matrix
@@ -239,7 +219,7 @@ def linear_exprs(A, x, b=None, rref=False, Matrix=None):
     b: array_like of numbers (default: None)
         when None, assume zeros of length len(x)
     Matrix: class
-        When ``rref == Ture``: A matrix class which supports slicing,
+        When ``rref == True``: A matrix class which supports slicing,
         and methods ``dot`` and ``rref``. Defaults to sympy.Matrix
     rref: bool (default: False)
         calculate the reduced row echelon form of (A | -b)

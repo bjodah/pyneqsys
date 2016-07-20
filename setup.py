@@ -62,7 +62,7 @@ setup_kwargs = dict(
     license='BSD',
     packages=[pkg_name] + tests,
     install_requires=['numpy'],
-    extras_require={'all': ['sympy', 'scipy', 'pyodesys']}
+    extras_require={'all': ['sym', 'sympy', 'scipy', 'pyodesys']}
 )
 
 if __name__ == '__main__':

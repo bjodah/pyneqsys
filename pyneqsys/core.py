@@ -57,7 +57,9 @@ class _NeqSysBase(object):
     def rms(self, x, params=()):
         """ Returns root means square value of f(x, params) """
         internal_x, internal_params = self.pre_process(x, params)
-        f_out = np.asarray(self.f_callback(internal_x.T, internal_params))
+        _x = internal_x.reshape((internal_x.size//self.nx, self.nx))
+        _params = np.tile(internal_params, (_x.shape[0], 1))
+        f_out = np.asarray(self.f_callback(_x, _params))
         return np.sqrt(np.mean(f_out**2, axis=0))
 
     def solve_series(self, x0, params, varied_data, varied_idx,
