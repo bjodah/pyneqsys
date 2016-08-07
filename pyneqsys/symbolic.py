@@ -26,17 +26,20 @@ class SymbolicSys(NeqSys):
     """
     Parameters
     ----------
-    x: iterable of Symbols
-    exprs: iterable of expressions for f
-    params: iterable of Symbols (optional)
+    x : iterable of Symbols
+    exprs : iterable of expressions for f
+    params : iterable of Symbols (optional)
         list of symbols appearing in exprs which are parameters
-    jac: ImmutableMatrix or bool (default: True)
+    jac : ImmutableMatrix or bool
         If True:
             calculate jacobian from exprs
         If False:
             do not compute jacobian (numeric approximation)
         If ImmutableMatrix:
             user provided expressions for the jacobian
+    backend : str or sym.Backend
+        See documentation of `sym.Backend \
+<https://pythonhosted.org/sym/sym.html#sym.backend.Backend>`_.
     \*\*kwargs:
         See :py:class:`pyneqsys.core.NeqSys`
 
