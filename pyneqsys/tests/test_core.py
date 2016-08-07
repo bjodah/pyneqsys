@@ -26,6 +26,15 @@ def j(x, params):
     ]
 
 
+def test_neqsys_rms():
+    ns = NeqSys(2, 2, f)
+    x = [[1, 0], [2, 1], [3, 2], [7, 4], [5, 13]]
+    p = [3]
+    rms = ns.rms(x, p)
+    ref = [np.sqrt(np.sum(np.square(f(x[i], p)))/2) for i in range(5)]
+    assert np.allclose(rms, ref)
+
+
 def _test_neqsys_params(solver):
     ns = NeqSys(2, 2, f, jac=j)
     x, sol = ns.solve([0, 0], [3], solver=solver)
@@ -95,6 +104,7 @@ def test_ConditionalNeqSys1():
 
 
 def _check_NaCl(cneqsys, guesses, cases=-1, **kwargs):
+    # Sodium chloride (NaCl) precipitation
     _init_final = [
         ([1, 1, 1], [2, 2, 0]),
         ([1, 1, 0], [1, 1, 0]),
