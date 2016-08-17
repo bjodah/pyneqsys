@@ -56,9 +56,15 @@ class _NeqSysBase(object):
 
     def rms(self, x, params=()):
         """ Returns root means square value of f(x, params) """
-        internal_x, internal_params = self.pre_process(x, params)
-        f_out = np.asarray(self.f_callback(internal_x.T, internal_params))
-        return np.sqrt(np.mean(f_out**2, axis=0))
+        internal_x, internal_params = self.pre_process(np.asarray(x),
+                                                       np.asarray(params))
+        if internal_params.ndim > 1:
+            raise NotImplementedError("Parameters should be constant.")
+        result = np.empty(internal_x.size//self.nx)
+        for idx in range(internal_x.shape[0]):
+            result[idx] = np.sqrt(np.mean(np.square(self.f_callback(
+                internal_x[idx, :], internal_params))))
+        return result
 
     def solve_series(self, x0, params, varied_data, varied_idx,
                      internal_x0=None, solver=None, propagate=True, **kwargs):
@@ -66,23 +72,23 @@ class _NeqSysBase(object):
 
         Parameters
         ----------
-        x0: array_like
+        x0 : array_like
             Guess (subject to ``self.post_processors``)
-        params: array_like
+        params : array_like
             Parameter values
-        vaired_data: array_like
+        vaired_data : array_like
             numerical values of the varied parameter
-        varied_idx: int
+        varied_idx : int
             index of the varied parameter (indexing starts at 0)
-        internal_x0: array_like (default: None)
+        internal_x0 : array_like (default: None)
             Guess (*not* subject to ``self.post_processors``).
-            Overrides x0 when given.
-        solver: str or callback
+            Overrides ``x0`` when given.
+        solver : str or callback
             See :meth:`solve`.
-        propagate: bool (default: True)
-            pass
+        propagate : bool (default: True)
+            Use last successful solution as ``x0`` in consecutive solves.
         \*\*kwargs:
-            keyword arguments pass along to :meth:`solve`
+            Keyword arguments pass along to :meth:`solve`.
         """
         new_params = np.atleast_1d(np.array(params, dtype=np.float64))
         xout = np.empty((len(varied_data), len(x0)))
@@ -178,30 +184,30 @@ class NeqSys(_NeqSysBase):
 
     Parameters
     ----------
-    nf: int
-        number of functions
-    nx: int
-        number of parameters
-    f: callback
-        function to solve for signature f(x) where ``len(x) == nx``
-        f should return an array_like of length ``nf``
-    jac: callback or None (default)
-        Jacobian matrix (dfdy). optional
-    band: tuple (default: None)
-        number of sub- and super-diagonals in jacobian.
-    names: iterable of str (default: None)
-        names of variables, used for plotting
-    pre_processors: iterable of callables (optional)
-        (forward) transformation of user-input to :py:meth:`solve`
-        signature: f(x1[:], params1[:]) -> x2[:], params2[:]
-        insert at beginning
-    post_processors: iterable of callables (optional)
-        (backward) transformation of result from :py:meth:`solve`
-        signature: f(x2[:], params2[:]) -> x1[:], params1[:]
-        insert at end
-    internal_x0_cb: callback (optional)
-        callback with signature f(x[:], p[:]) -> x0[:]
-        if not specified, x from self.pre_processors will be used.
+    nf : int
+        Number of functions.
+    nx : int
+        Number of independent variables.
+    f : callback
+        Function to solve for. Signature ``f(x) -> y`` where ``len(x) == nx``
+        and ``len(y) == nf``.
+    jac : callback or None (default)
+        Jacobian matrix (dfdy).
+    band : tuple (default: None)
+        Number of sub- and super-diagonals in jacobian.
+    names : iterable of str (default: None)
+        Names of variables, used for plotting.
+    pre_processors : iterable of callables (optional)
+        (Forward) transformation of user-input to :py:meth:`solve`
+        signature: ``f(x1[:], params1[:]) -> x2[:], params2[:]``.
+        Insert at beginning.
+    post_processors : iterable of callables (optional)
+        (Backward) transformation of result from :py:meth:`solve`
+        signature: ``f(x2[:], params2[:]) -> x1[:], params1[:]``.
+        Insert at end.
+    internal_x0_cb : callback (optional)
+        callback with signature ``f(x[:], p[:]) -> x0[:]``
+        if not specified, ``x`` from ``self.pre_processors`` will be used.
 
     Examples
     --------
