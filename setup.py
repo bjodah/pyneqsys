@@ -4,12 +4,14 @@
 import io
 import os
 import shutil
+import warnings
 from setuptools import setup
 
-
 pkg_name = 'pyneqsys'
+url = 'https://github.com/bjodah/' + pkg_name
+license = 'BSD'
 
-RELEASE_VERSION = os.environ.get('PYNEQSYS_RELEASE_VERSION', '')
+RELEASE_VERSION = os.environ.get('%s_RELEASE_VERSION' % pkg_name.upper(), '')  # v*
 
 # http://conda.pydata.org/docs/build.html#environment-variables-set-during-the-build-process
 if os.environ.get('CONDA_BUILD', '0') == '1':
@@ -25,9 +27,12 @@ def _path_under_setup(*args):
 
 release_py_path = _path_under_setup(pkg_name, '_release.py')
 
-if len(RELEASE_VERSION) > 1 and RELEASE_VERSION[0] == 'v':
-    TAGGED_RELEASE = True
-    __version__ = RELEASE_VERSION[1:]
+if len(RELEASE_VERSION) > 0:
+    if RELEASE_VERSION[0] == 'v':
+        TAGGED_RELEASE = True
+        __version__ = RELEASE_VERSION[1:]
+    else:
+        raise ValueError("Ill formated version")
 else:
     TAGGED_RELEASE = False
     # read __version__ attribute from _release.py:
@@ -45,21 +50,25 @@ tests = [
     'pyneqsys.tests',
 ]
 
-with io.open(_path_under_setup(pkg_name, '__init__.py'),
-             encoding='utf-8') as f:
-    long_description = f.read().split('"""')[1]
+with io.open(_path_under_setup(pkg_name, '__init__.py'), encoding='utf-8') as f:
+    short_description = f.read().split('"""')[1].split('\n')[1]
+if not 10 < len(short_description) < 255:
+    warnings.warn("Short description from __init__.py proably not read correctly")
+long_descr = io.open(_path_under_setup('README.rst'), encoding='utf-8').read()
+if not len(long_descr) > 100:
+    warnings.warn("Long description from README.rst probably not read correctly.")
+_author, _author_email = open(_path_under_setup('AUTHORS'), 'rt').readline().split('<')
 
-descr = 'Solving of symbolic systems of non-linear equations numerically.'
 setup_kwargs = dict(
     name=pkg_name,
     version=__version__,
-    description=descr,
-    long_description=long_description,
+    description=short_description,
+    long_description=long_descr,
     classifiers=classifiers,
-    author='Björn Dahlgren',
-    author_email='bjodah@DELETEMEgmail.com',
-    url='https://github.com/bjodah/' + pkg_name,
-    license='BSD',
+    author=_author,
+    author_email=_author_email,
+    url=url,
+    license=license,
     packages=[pkg_name] + tests,
     install_requires=['numpy'],
     extras_require={'all': ['sym', 'sympy', 'scipy', 'pyodesys']}

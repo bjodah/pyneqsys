@@ -6,7 +6,7 @@ from itertools import chain
 
 import numpy as np
 from sym import Backend
-from pyodesys.util import banded_jacobian, check_transforms
+from sym.util import banded_jacobian, check_transforms
 
 from .core import NeqSys, _ensure_3args
 

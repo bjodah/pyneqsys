@@ -1,15 +1,12 @@
 build:
-  image: bjodah/bjodahimg:latest
+  image: bjodah/bjodahimg16:v1.2
   environment:
     - PYNLEQ2_NLEQ2_ROOT_URL=$$PYNLEQ2_NLEQ2_ROOT_URL
   commands:
-    - python2.7 -m pip install --user pynleq2
-    - python3.4 -m pip install --user pynleq2
+    - (cd /; python2 -m pip install --user pynleq2)
+    - (cd /; python3 -m pip install --user pynleq2)
     - export PYNLEQ2_NLEQ2_ROOT_URL=""
     - ./scripts/ci.sh pyneqsys
-    - (cd examples/; ipython2 nbconvert --to=html --debug --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
-    - (cd examples/; ../scripts/render_index.sh *.html)
-    - ./scripts/generate_docs.sh
     - ./scripts/prepare_deploy.sh
 
 deploy:

@@ -1,32 +1,42 @@
+{% set name = "pyneqsys" %}
+{% set version = "0.5.0.git" %}
+
 package:
-  name: pyneqsys
-  version: 0.4.0.git
+  name: {{ name|lower }}
+  version: {{ version }}
 
 source:
-  path: ../
+  git_url: ../
 
 build:
   number: 0
+  script: python setup.py install --single-version-externally-managed --record record.txt
 
 requirements:
   build:
     - python
-    - numpy
   run:
     - python
     - numpy
     - sympy
     - scipy
-    - pyodesys
+    - sym
 
 test:
   imports:
-    - pyneqsys
+    - {{ name }}
   requires:
     - nose
   commands:
     - nosetests pyneqsys
 
 about:
-  home: https://github.com/bjodah/pyneqsys
-  license: BSD
+  home: https://github.com/bjodah/{{ name }}
+  license: BSD 2-Clause
+  license_file: LICENSE
+  summary: 'Solve symbolically defined systems of non-linear equations numerically.'
+  doc_url: https://bjodah.github.io/{{ name }}/latest
+
+extra:
+  recipe-maintainers:
+    - bjodah
