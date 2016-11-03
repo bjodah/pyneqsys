@@ -15,20 +15,24 @@ build:
 requirements:
   build:
     - python
+    - setuptools
   run:
     - python
     - numpy
-    - sympy
     - scipy
     - sym
+    - sympy
+    - symcxx
+    - python-symengine
+    - pysym
 
 test:
   imports:
     - {{ name }}
   requires:
-    - nose
+    - pytest
   commands:
-    - nosetests pyneqsys
+    - pytest --pyargs {{ name }}
 
 about:
   home: https://github.com/bjodah/{{ name }}

@@ -23,7 +23,9 @@ PKG=$(find . -maxdepth 2 -name __init__.py -print0 | xargs -0 -n1 dirname | xarg
 PKG_UPPER=$(echo $PKG | tr '[:lower:]' '[:upper:]')
 ./scripts/run_tests.sh
 env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION python setup.py sdist
-env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION ./scripts/generate_docs.sh $4 ${5:-$PKG} v$VERSION
+if [[ -e ./scripts/generate_docs.sh ]]; then
+    env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION ./scripts/generate_docs.sh  # $4 ${5:-$PKG} v$VERSION
+fi
 for CONDA_PY in 2.7 3.4 3.5; do
     for CONDA_NPY in 1.11; do
         continue  # we build the conda recipe on another host for now..
@@ -39,10 +41,10 @@ twine upload dist/${PKG}-$VERSION.tar.gz
 
 set +x
 echo ""
-echo "    You may now create a new github release at with the tag \"v$VERSION\" and name "
-echo "    it \"${PKG}-${VERSION}\", (don't foreget to manually attach the new .tar.gz"
-echo "    file from the ./dist/ directory). Here is a link:"
+echo "    You may now create a new github release at with the tag \"v$VERSION\", here is a link:"
 echo "        https://github.com/$4/${5:-$PKG}/releases/new "
+echo "    name the release \"${PKG}-${VERSION}\", and don't foreget to manually attach the file:"
+echo "        $(openssl sha256 $(pwd)/dist/${PKG}-${VERSION}.tar.gz)"
 echo "    Then run:"
 echo ""
 echo "        $ ./scripts/post_release.sh $1 $SERVER $4"
