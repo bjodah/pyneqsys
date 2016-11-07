@@ -1,5 +1,5 @@
-unreleased
-==========
+v0.4.3
+======
 - Rely on ``sym`` package.
 
 v0.4.2
