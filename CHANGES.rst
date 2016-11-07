@@ -1,3 +1,7 @@
+v0.4.4
+======
+- Fix test suite (for conda-build)
+
 v0.4.3
 ======
 - Rely on ``sym`` package.
