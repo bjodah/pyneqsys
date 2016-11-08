@@ -68,10 +68,10 @@ def test_neqsys_params_nleq2():
     _test_neqsys_params('nleq2')
 
 
-def _test_neqsys_no_params(solver):
+def _test_neqsys_no_params(solver, **kwargs):
     ns = NeqSys(2, 2, lambda x: f(x, [3]),
                 jac=lambda x: j(x, [3]))
-    x, sol = ns.solve([0, 0], solver=solver)
+    x, sol = ns.solve([0, 0], solver=solver, **kwargs)
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
 

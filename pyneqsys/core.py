@@ -434,6 +434,26 @@ generated/scipy.optimize.root.html
         warnings.warn("ipopt interface untested at the moment")
         return minimize_ipopt(self.f_callback, intern_x0, jac=self.j_callback)
 
+    def _solve_levmar(self, intern_x0, **kwargs):
+        import warnings
+        warnings.warn("levmar interface is provisional, may change.")
+        import levmar
+        def _f(*args):
+            return np.asarray(self.f_callback(*args))
+        def _j(*args):
+            return np.asarray(self.j_callback(*args))
+        _x0 = np.asarray(intern_x0)
+        _y0 = np.zeros(self.nf)
+        with warnings.catch_warnings(record=True) as wrns:
+            warnings.simplefilter("always")
+            p_opt, p_cov, info = levmar.levmar(_f, _x0, _y0, jacf=_j, **kwargs)
+        success = len(wrns) == 0
+        for w in wrns:
+            raise w
+        e2p0, (e2, infJTe, Dp2, mu_maxJTJii), nit, reason, nfev, njev, nlinsolv = info
+        return {'x': p_opt, 'cov': p_cov, 'nfev': nfev, 'njev': njev, 'nit': nit,
+                'message': reason, 'nlinsolv': nlinsolv, 'success': success}
+
 
 class ConditionalNeqSys(_NeqSysBase):
     """ Collect multiple systems of non-linear equations with different
