@@ -63,7 +63,7 @@ _author, _author_email = open(_path_under_setup('AUTHORS'), 'rt').readline().spl
 extras_req = {
     'symbolic': ['sym', 'sympy>=1.0', 'pysym', 'symcxx'],  # use conda for symengine
     'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],
-    'solvers': ['scipy', 'pykinsol'],  # maybe also cyipopt and pynleq2
+    'solvers': ['scipy', 'pykinsol', 'levmar'],  # maybe also cyipopt and pynleq2
     'testing': ['pytest', 'pytest-cov', 'pytest-flakes', 'pytest-pep8']
 }
 extras_req['all'] = list(chain(extras_req.values()))

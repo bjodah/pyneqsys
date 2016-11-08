@@ -34,6 +34,24 @@ def j(x, params):
     ]
 
 
+def _test_fail(solver, **kwargs):
+    def _f(x, p):
+        return [p[0] + x[0]**2]
+
+    def _j(x, p):
+        return [[2*x[0]]]
+
+    ns = NeqSys(1, 1, _f, jac=_j)
+    x, res = ns.solve([1], [1], solver=solver, **kwargs)
+    assert len(x) == 1
+    assert abs(x[0]) < 1e-8
+    assert not res['success']
+
+
+def test_fail():
+    _test_fail('scipy')
+
+
 def test_neqsys_rms():
     ns = NeqSys(2, 2, f)
     x = [[1, 0], [2, 1], [3, 2], [7, 4], [5, 13]]
@@ -43,9 +61,9 @@ def test_neqsys_rms():
     assert np.allclose(rms, ref)
 
 
-def _test_neqsys_params(solver):
+def _test_neqsys_params(solver, **kwargs):
     ns = NeqSys(2, 2, f, jac=j)
-    x, sol = ns.solve([0, 0], [3], solver=solver)
+    x, sol = ns.solve([0, 0], [3], solver=solver, **kwargs)
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
 
@@ -68,10 +86,10 @@ def test_neqsys_params_nleq2():
     _test_neqsys_params('nleq2')
 
 
-def _test_neqsys_no_params(solver):
+def _test_neqsys_no_params(solver, **kwargs):
     ns = NeqSys(2, 2, lambda x: f(x, [3]),
                 jac=lambda x: j(x, [3]))
-    x, sol = ns.solve([0, 0], solver=solver)
+    x, sol = ns.solve([0, 0], solver=solver, **kwargs)
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
 
