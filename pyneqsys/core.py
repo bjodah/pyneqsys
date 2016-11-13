@@ -90,6 +90,10 @@ class _NeqSysBase(object):
         \*\*kwargs:
             Keyword arguments pass along to :meth:`solve`.
         """
+        if self.x_by_name:
+            x0 = [x0[k] for k in self.names]
+        if self.par_by_name:
+            params = [params[k] for k in self.param_names]
         new_params = np.atleast_1d(np.array(params, dtype=np.float64))
         xout = np.empty((len(varied_data), len(x0)))
         self.internal_xout = np.empty_like(xout)
@@ -196,7 +200,9 @@ class NeqSys(_NeqSysBase):
     band : tuple (default: None)
         Number of sub- and super-diagonals in jacobian.
     names : iterable of str (default: None)
-        Names of variables, used for plotting.
+        Names of variables, used for plotting and for referencing by name.
+    param_names : iterable of strings (default: None)
+        Names of the parameters, used for referencing parameters by name.
     pre_processors : iterable of callables (optional)
         (Forward) transformation of user-input to :py:meth:`solve`
         signature: ``f(x1[:], params1[:]) -> x2[:], params2[:]``.
@@ -224,9 +230,13 @@ class NeqSys(_NeqSysBase):
                                     the jacobian.
     """
 
-    def __init__(self, nf, nx, f, jac=None, band=None, names=None,
-                 pre_processors=None, post_processors=None,
-                 internal_x0_cb=None):
+    def __init__(self, nf, nx=None, f=None, jac=None, band=None, names=None,
+                 param_names=None, x_by_name=False, par_by_name=False,
+                 pre_processors=None, post_processors=None, internal_x0_cb=None):
+        if nx is None:
+            nx = len(names)
+        if f is None:
+            raise ValueError("A callback for f must be provided")
         if nf < nx:
             raise ValueError("Under-determined system")
         self.nf, self.nx = nf, nx
@@ -234,6 +244,9 @@ class NeqSys(_NeqSysBase):
         self.j_callback = _ensure_3args(jac)
         self.band = band
         self.names = names
+        self.param_names = param_names
+        self.x_by_name = x_by_name
+        self.par_by_name = par_by_name
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
         self.internal_x0_cb = internal_x0_cb

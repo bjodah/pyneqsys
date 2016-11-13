@@ -281,18 +281,28 @@ def test_ChainedNeqSys():
                 nfo['intermediate_info'][1]['success'])
 
 
-def test_chained_solvers():
-    import math
+_powell_ref = (0.0001477105829534399, 6.769995622556115071)
 
-    def powell(x, params, backend=math):
-        A, exp = params[0], backend.exp
-        return A*x[0]*x[1] - 1, exp(-x[0]) + exp(-x[1]) - (1 + A**-1)
 
-    powell_sys = NeqSys(2, 2, powell)
-    x, info = powell_sys.solve([1, 1], [1000.0], solver=[None, 'mpmath'],
-                               tol=1e-12)
+def _powell(x, params, backend=math):
+    A, exp = params[0], backend.exp
+    return A*x[0]*x[1] - 1, exp(-x[0]) + exp(-x[1]) - (1 + A**-1)
+
+
+def _test_powell(powell_sys):
+    x, info = powell_sys.solve([1, 1], [1000.0],
+                               solver=[None, 'mpmath'], tol=1e-12)
     assert info['success']
     x = sorted(x)
-    ref = 0.0001477105829534399, 6.769995622556115071
-    assert abs(ref[0] - x[0]) < 2e-11
-    assert abs(ref[1] - x[1]) < 6e-10
+    assert abs(_powell_ref[0] - x[0]) < 2e-11
+    assert abs(_powell_ref[1] - x[1]) < 6e-10
+
+
+def test_chained_solvers():
+    powell_sys = NeqSys(2, 2, _powell)
+    _test_powell(powell_sys)
+
+def test_x_by_name():
+    powell_sys = NeqSys(2, f=_powell, names=['u', 'v'],
+                        x_by_name=True)
+    _test_powell(powell_sys)
