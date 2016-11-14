@@ -10,7 +10,7 @@ except ImportError:
 else:
     missing_import = False
 
-from .test_core import f
+from .test_core import f, _test_powell
 
 
 @pytest.mark.skipif(missing_import, reason="pyneqsys.symbolic req. missing")
@@ -86,3 +86,17 @@ def test_linear_exprs():
     rexprs = linear_exprs(coeffs, x, vals, rref=True)
     rknown = [a + 15, b - 8, c - 2]
     assert all([(rt - kn).simplify() == 0 for rt, kn in zip(rexprs, rknown)])
+
+
+def _powell_by_name(x, params, backend=None):
+    A, exp = params['A'], backend.exp
+    u, v = x['u'], x['v']
+    return A*u*v - 1, exp(-u) + exp(-v) - (1 + A**-1)
+
+
+@pytest.mark.skipif(missing_import, reason="pyneqsys.symbolic req. missing")
+def test_symbolic_x_and_par_by_name():
+    powell_sys = SymbolicSys.from_callback(
+        _powell_by_name, names=['u', 'v'], param_names=['A'],
+        x_by_name=True, par_by_name=True)
+    _test_powell(powell_sys)
