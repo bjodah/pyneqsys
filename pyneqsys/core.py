@@ -43,6 +43,12 @@ def _ensure_3args(func):
 
 class _NeqSysBase(object):
 
+    def __init__(self, names=None, param_names=None, x_by_name=None, par_by_name=None):
+        self.names = names
+        self.param_names = param_names
+        self.x_by_name = x_by_name
+        self.par_by_name = par_by_name
+
     def _get_solver_cb(self, solver, attached_solver):
         if attached_solver is not None:
             if solver is not None:
@@ -230,11 +236,11 @@ class NeqSys(_NeqSysBase):
                                     the jacobian.
     """
 
-    def __init__(self, nf, nx=None, f=None, jac=None, band=None, names=None,
-                 param_names=None, x_by_name=False, par_by_name=False,
-                 pre_processors=None, post_processors=None, internal_x0_cb=None):
+    def __init__(self, nf, nx=None, f=None, jac=None, band=None,
+                 pre_processors=None, post_processors=None, internal_x0_cb=None, **kwargs):
+        super(NeqSys, self).__init__(**kwargs)
         if nx is None:
-            nx = len(names)
+            nx = len(self.names)
         if f is None:
             raise ValueError("A callback for f must be provided")
         if nf < nx:
@@ -243,10 +249,6 @@ class NeqSys(_NeqSysBase):
         self.f_callback = _ensure_3args(f)
         self.j_callback = _ensure_3args(jac)
         self.band = band
-        self.names = names
-        self.param_names = param_names
-        self.x_by_name = x_by_name
-        self.par_by_name = par_by_name
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
         self.internal_x0_cb = internal_x0_cb
@@ -536,10 +538,10 @@ class ConditionalNeqSys(_NeqSysBase):
 
     """
 
-    def __init__(self, condition_cb_pairs, neqsys_factory, names=None):
+    def __init__(self, condition_cb_pairs, neqsys_factory, **kwargs):
+        super(ConditionalNeqSys, self).__init__(**kwargs)
         self.condition_cb_pairs = condition_cb_pairs
         self.neqsys_factory = clru_cache(LRU_CACHE_SIZE)(neqsys_factory)
-        self.names = names
 
     def get_conds(self, x, params, prev_conds=None):
         if prev_conds is None:
@@ -622,9 +624,9 @@ class ChainedNeqSys(_NeqSysBase):
 
     """
 
-    def __init__(self, neqsystems, names=None):
+    def __init__(self, neqsystems, **kwargs):
+        super(ChainedNeqSys, self).__init__(**kwargs)
         self.neqsystems = neqsystems
-        self.names = names
 
     def solve(self, x0, params=(), internal_x0=None, solver=None, **kwargs):
         x_vecs = []
