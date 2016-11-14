@@ -94,8 +94,9 @@ def _powell_by_name(x, params, backend=None):
     return A*u*v - 1, exp(-u) + exp(-v) - (1 + A**-1)
 
 
+@pytest.mark.skipif(missing_import, reason="pyneqsys.symbolic req. missing")
 def test_symbolic_x_and_par_by_name():
     powell_sys = SymbolicSys.from_callback(
-        _powell_by_name, names=['u', 'v'], x_by_name=True,
-        par_by_name=True)
+        _powell_by_name, names=['u', 'v'], param_names=['A'],
+        x_by_name=True, par_by_name=True)
     _test_powell(powell_sys)

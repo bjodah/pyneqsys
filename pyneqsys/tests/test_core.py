@@ -302,6 +302,7 @@ def test_chained_solvers():
     powell_sys = NeqSys(2, 2, _powell)
     _test_powell(powell_sys)
 
+
 def test_x_by_name():
     powell_sys = NeqSys(2, f=_powell, names=['u', 'v'],
                         x_by_name=True)
