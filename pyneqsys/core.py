@@ -96,10 +96,6 @@ class _NeqSysBase(object):
         \*\*kwargs:
             Keyword arguments pass along to :meth:`solve`.
         """
-        if self.x_by_name:
-            x0 = [x0[k] for k in self.names]
-        if self.par_by_name:
-            params = [params[k] for k in self.param_names]
         new_params = np.atleast_1d(np.array(params, dtype=np.float64))
         xout = np.empty((len(varied_data), len(x0)))
         self.internal_xout = np.empty_like(xout)
@@ -256,6 +252,10 @@ class NeqSys(_NeqSysBase):
     def pre_process(self, x0, params=()):
         """ Used internally for transformation of variables """
         # Should be used by all methods matching "solve_*"
+        if self.x_by_name:
+            x0 = [x0[k] for k in self.names]
+        if self.par_by_name:
+            params = [params[k] for k in self.param_names]
         for pre_processor in self.pre_processors:
             x0, params = pre_processor(x0, params)
         return x0, np.atleast_1d(params)
@@ -312,16 +312,17 @@ class NeqSys(_NeqSysBase):
             solver = [solver]
         if not isinstance(attached_solver, (tuple, list)):
             attached_solver = [attached_solver] + [None]*(len(solver) - 1)
+        _x0, self.internal_params = self.pre_process(x0, params)
         for solv, attached_solv in zip(solver, attached_solver):
-            intern_x0, self.internal_params = self.pre_process(x0, params)
             if internal_x0 is not None:
-                intern_x0 = internal_x0
+                _x0 = internal_x0
             elif self.internal_x0_cb is not None:
-                intern_x0 = self.internal_x0_cb(x0, params)
+                _x0 = self.internal_x0_cb(x0, params)
 
-            nfo = self._get_solver_cb(solv, attached_solv)(intern_x0, **kwargs)
-            self.internal_x = nfo['x'].copy()
-            x0 = self.post_process(self.internal_x, self.internal_params)[0]
+            nfo = self._get_solver_cb(solv, attached_solv)(_x0, **kwargs)
+            _x0 = nfo['x'].copy()
+        self.internal_x = _x0
+        x0 = self.post_process(self.internal_x, self.internal_params)[0]
         return x0, nfo
 
     def _solve_scipy(self, intern_x0, tol=1e-8, method=None, **kwargs):
