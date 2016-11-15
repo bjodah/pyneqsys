@@ -99,4 +99,4 @@ def test_symbolic_x_and_par_by_name():
     powell_sys = SymbolicSys.from_callback(
         _powell_by_name, names=['u', 'v'], param_names=['A'],
         x_by_name=True, par_by_name=True)
-    _test_powell(powell_sys)
+    _test_powell(powell_sys, {'u': 1, 'v': 1}, {'A': 1000.0})

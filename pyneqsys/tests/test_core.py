@@ -289,8 +289,8 @@ def _powell(x, params, backend=math):
     return A*x[0]*x[1] - 1, exp(-x[0]) + exp(-x[1]) - (1 + A**-1)
 
 
-def _test_powell(powell_sys):
-    x, info = powell_sys.solve([1, 1], [1000.0],
+def _test_powell(powell_sys, x0=(1, 1), par=(1000.0,)):
+    x, info = powell_sys.solve(x0, par,
                                solver=[None, 'mpmath'], tol=1e-12)
     assert info['success']
     x = sorted(x)
@@ -306,4 +306,4 @@ def test_chained_solvers():
 def test_x_by_name():
     powell_sys = NeqSys(2, f=_powell, names=['u', 'v'],
                         x_by_name=True)
-    _test_powell(powell_sys)
+    _test_powell(powell_sys, x0={'u': 1, 'v': 1})
