@@ -9,6 +9,7 @@ jobs:
       - run: conda update python
       - run: conda install gcc_linux-64
       - run: conda install gxx_linux-64
+      - run: conda install conda-build
       - run: conda config --add channels conda-forge
       - run: conda config --add channels bjodah
       - run: conda config --set show_channel_urls true
