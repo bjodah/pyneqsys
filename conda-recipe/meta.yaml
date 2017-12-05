@@ -9,6 +9,7 @@ source:
   git_url: ../
 
 build:
+  noarch: python
   number: 0
   script: python setup.py install --single-version-externally-managed --record record.txt
 
@@ -16,13 +17,12 @@ requirements:
   build:
     - python
     - setuptools
-    - numpy
   run:
     - python
-    - numpy
+    - numpy >1.7
     - scipy
-    - sym
-    - sympy
+    - sym >=0.3.0
+    - sympy >=1.1.1
     - symcxx
     - python-symengine
     - pysym
