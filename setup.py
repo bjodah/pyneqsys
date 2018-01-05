@@ -74,9 +74,9 @@ if not len(long_descr) > 100:
 _author, _author_email = open(_path_under_setup('AUTHORS'), 'rt').readline().split('<')
 
 extras_req = {
-    'symbolic': ['sym>=0.3.0', 'sympy>=1.1.1', 'pysym', 'symcxx'],  # use conda for symengine
+    'symbolic': ['pysym', 'symcxx'],  # use conda for symengine
     'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],
-    'solvers': ['scipy', 'pykinsol', 'levmar'],  # maybe also cyipopt and pynleq2
+    'solvers': ['pykinsol', 'levmar', 'mpmath'],  # maybe also cyipopt and pynleq2
     'testing': ['pytest', 'pytest-cov', 'pytest-flakes', 'pytest-pep8']
 }
 extras_req['all'] = list(chain(extras_req.values()))
@@ -92,7 +92,7 @@ setup_kwargs = dict(
     url=url,
     license=license,
     packages=[pkg_name] + tests,
-    install_requires=['numpy>1.7'],
+    install_requires=['numpy>1.7', 'sym>=0.3.0', 'sympy>=1.1.1', 'scipy'],
     extras_require=extras_req
 )
 

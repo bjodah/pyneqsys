@@ -4,6 +4,9 @@ pyneqsys
 .. image:: http://hera.physchem.kth.se:9090/api/badges/bjodah/pyneqsys/status.svg
    :target: http://hera.physchem.kth.se:9090/bjodah/pyneqsys
    :alt: Build status
+.. image:: https://circleci.com/gh/bjodah/pyneqsys.svg?style=svg
+   :target: https://circleci.com/gh/bjodah/pyneqsys
+   :alt: Build status on CircleCI
 .. image:: https://img.shields.io/pypi/v/pyneqsys.svg
    :target: https://pypi.python.org/pypi/pyneqsys
    :alt: PyPI version
@@ -21,8 +24,29 @@ representing and solving non-linear equation systems from symbolic expressions
 The numerical root finding is perfomed using either:
 
 - scipy: `scipy.optimize.root <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root.html>`_
-- nleq2: `pynleq2.solve <http://bjodah.github.io/pynleq2/pynleq2.html#pynleq2.solve>`_ (unsettled API)
-- kinsol: `pykinsol.solve <http://bjodah.github.io/pykinsol/pykinsol.html#pykinsol.solve>`_
+- mpmath (arbitrary precision): `mpmath.calculus.optimization.MDNewton <http://mpmath.org/doc/1.0.0/calculus/optimization.html#mpmath.calculus.optimization.MDNewton>`_
+- kinsol (from SUNDIALS): `pykinsol.solve <http://bjodah.github.io/pykinsol/pykinsol.html#pykinsol.solve>`_
+- nleq2 (ZIB library free for academic use): `pynleq2.solve <http://bjodah.github.io/pynleq2/pynleq2.html#pynleq2.solve>`_
+- levmar (Levenberg-Marquardt): levmar.levmar `<https://bjodah.github.io/levmar/latest/levmar.html#levmar.levmar>`_
+
+In addition to offering a unified interface to different solvers, ``pyneqsys``
+can also derive the Jacobian analytically (when using ``pyodesys.SymbolicSys``).
+This is useful since doing so manually is widely recognized as both tedious and error
+prone.
+
+The symbolic representation is usually in the form of `SymPy <https://www.sympy.org/>`_
+expressions, but the user may choose another symbolic back-end (see `sym <https://github.com/bjodah/sym>`_).
+
+In addition to deriving the Jacobian anyltically the symbolic representation can for
+example apply row-reduce. This is usful for when you have a overdetermined system (
+formed from e.g. applying conservation laws) and want to solve the system by
+root-finding rather than using a least-square optimization of e.g. Levenberg-Marquardt
+style.
+
+Last, but not the least. Having a symbolic representation of your system of equations
+allows you to generate publication quality latex representations of your equations (through
+SymPy's latex printer) from a **single** source‒no more error prone hand-rewriting of the same
+equations in another format for presentation!
 
 Documentation
 -------------
@@ -38,15 +62,59 @@ Simplest way to install pyneqsys and its dependencies is through the `conda pack
 ::
 
    $ conda install -c bjodah pyneqsys pytest
-   $ python -m pytest --pyargs pyneqsys
+   $ pytest --pyargs pyneqsys
 
-alternatively you may also use `pip`:
+Optional dependencies
+~~~~~~~~~~~~~~~~~~~~~
+If you used ``conda`` to install pyneqsys_ you can skip this section.
+But if you use ``pip`` you may want to know that the default installation
+of ``pyodesys`` only requires SciPy::
 
-::
+   $ pip install pyodesys
+   $ pytest --pyargs pyodesys -rs
 
-   $ python -m pip install --user pyneqsys
+The above command should finish without errors but with some skipped tests.
+The reason for why some tests are skipped should be because missing optional solvers.
+To install the optional solvers you will first need to install third party libraries for
+the solvers and then their python bindings. The 3rd party requirements are as follows:
 
-see `setup.py <setup.py>`_ for optional requirements.
+- `pykinsol <https://github.com/bjodah/pykinsol>`_ (requires SUNDIALS_ ==2.7.0)
+- `levar <https://github.com/bjodah/levmar>`_
+- `mpmath <https://www.mpmath.org>`_
+
+.. _SUNDIALS: https://computation.llnl.gov/projects/sundials
+
+if you want to see what packages need to be installed on a Debian based system you may look at this
+`Dockerfile <scripts/environment/Dockerfile>`_.
+
+If you manage to install all three external libraries you may install pyodesys with the option "all"::
+
+  $ pip install pyodesys[all]
+  $ pytest --pyargs pyodesys -rs
+
+now there should be no skipped tests. If you try to install pyodesys on a machine where you do not have
+root permissions you may find the flag ``--user`` helpful when using pip. Also if there are multiple
+versions of python installed you may want to invoke python for an explicit version of python, e.g.::
+
+  $ python3.6 -m pip install --user pyodesys[all]
+
+see `setup.py <setup.py>`_ for the exact list of requirements.
+
+Using Docker
+~~~~~~~~~~~~
+If you have `Docker <https://www.docker.com>`_ installed, you may use it to host a jupyter
+notebook server::
+
+  $ ./scripts/host-jupyter-using-docker.sh . 8888
+
+the first time you run the command some dependencies will be downloaded. When the installation
+is complete there will be a link visible which you can open in your browser. You can also run
+the test suite using the same docker-image::
+
+  $ ./scripts/host-jupyter-using-docker.sh . 0
+
+there will be one skipped test (due to symengine missing in this pip installed environment) and
+quite a few instances of RintimeWarning.
 
 Example
 -------
