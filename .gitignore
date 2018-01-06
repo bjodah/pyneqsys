@@ -11,3 +11,7 @@ doc
 htmlcov
 deploy
 **.egg-info/
+.local/
+.ipython/
+.jupyter/*
+!.jupyter/jupyter_notebook_config.py
