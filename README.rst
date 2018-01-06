@@ -25,7 +25,7 @@ The numerical root finding is perfomed using either:
 
 - scipy: `scipy.optimize.root <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root.html>`_
 - mpmath (arbitrary precision): `mpmath.calculus.optimization.MDNewton <http://mpmath.org/doc/1.0.0/calculus/optimization.html#mpmath.calculus.optimization.MDNewton>`_
-- kinsol (from SUNDIALS): `pykinsol.solve <http://bjodah.github.io/pykinsol/pykinsol.html#pykinsol.solve>`_
+- kinsol (from SUNDIALS): `pykinsol.solve <http://bjodah.github.io/pykinsol/latest/pykinsol.html#pykinsol.solve>`_
 - nleq2 (ZIB library free for academic use): `pynleq2.solve <http://bjodah.github.io/pynleq2/pynleq2.html#pynleq2.solve>`_
 - levmar (Levenberg-Marquardt): levmar.levmar `<https://bjodah.github.io/levmar/latest/levmar.html#levmar.levmar>`_
 
