@@ -116,8 +116,8 @@ the test suite using the same docker-image::
 there will be one skipped test (due to symengine missing in this pip installed environment) and
 quite a few instances of RintimeWarning.
 
-Example
--------
+Examples
+--------
 Example reformulated from `SciPy documentation <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root.html>`_:
 
 .. code:: python
@@ -147,6 +147,16 @@ For expressions containing transcendental functions we need to provide a
    >>> print(', '.join(['%.6e' % _ for _ in sorted(x)]))
    1.477106e-04, 6.769996e+00
 
+pyneqsys also allows the user to solve an eqauation system for a span of
+values for a parameter, and optionally plot the result vs. the varied value:
+
+.. code:: python
+
+   >>> import numpy as np
+   >>> all_x, all_info = powell_sys.solve_and_plot_series(x, [1000.0], np.linspace(1e3, 3e3), 0)  # doctest: +SKIP
+
+.. image:: https://raw.githubusercontent.com/bjodah/pyneqsys/master/examples/example.png
+
 For more examples look see
 `examples/ <https://github.com/bjodah/pyneqsys/tree/master/examples>`_, and rendered jupyter notebooks here:
 `<http://hera.physchem.kth.se/~pyneqsys/branches/master/examples>`_
@@ -156,6 +166,11 @@ License
 -------
 The source code is Open Source and is released under the simplified 2-clause BSD license. See `LICENSE <LICENSE>`_ for further details.
 Contributors are welcome to suggest improvements at https://github.com/bjodah/pyneqsys
+
+Contributing
+------------
+Contributors are welcome to suggest improvements at https://github.com/bjodah/pyneqsys
+(see further details `here <CONTRIBUTORS.rst>`_).
 
 Author
 ------
