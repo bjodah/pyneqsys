@@ -1,26 +1,27 @@
 # -*- coding: utf-8 -*-
 
+import matplotlib.pyplot as plt
 
-def plot_series(xres, varied_data, indices=None, info_dicts=None,
-                fail_vline=None, plot=None, plot_kwargs_cb=None,
+def plot_series(xres, varied_data, indices=None, info=None,
+                fail_vline=None, plot_kwargs_cb=None,
                 ls=('-', '--', ':', '-.'),
                 c=('k', 'r', 'g', 'b', 'c', 'm', 'y'), labels=None,
-                ax=None):
+                ax=None, names=None, latex_names=None):
     """ Plot the values of the solution vector vs the varied parameter """
     if indices is None:
         indices = range(xres.shape[1])
 
     if fail_vline is None:
-        if info_dicts is None:
+        if info is None:
             fail_vline = False
         else:
             fail_vline = True
 
-    if plot is None:
-        if ax is None:
-            from matplotlib.pyplot import plot
-        else:
-            plot = ax.plot
+    if ax is None:
+        ax = plt.subplot(1, 1, 1)
+
+    if labels is None:
+        labels = names if latex_names is None else ['$%s$' % ln.strip('$') for ln in latex_names]
 
     if plot_kwargs_cb is None:
         def plot_kwargs_cb(idx, labels=None):
@@ -33,17 +34,17 @@ def plot_series(xres, varied_data, indices=None, info_dicts=None,
         plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
 
     for idx in indices:
-        plot(varied_data, xres[:, idx], **plot_kwargs_cb(
-            idx, labels=labels))
+        ax.plot(varied_data, xres[:, idx], **plot_kwargs_cb(idx, labels=labels))
 
     if fail_vline:
         if ax is None:
             from matplotlib.pyplot import axvline
         else:
             axvline = ax.axvline
-        for i, sol in enumerate(info_dicts):
-            if not sol['success']:
+        for i, nfo in enumerate(info):
+            if not nfo['success']:
                 axvline(varied_data[i], c='k', ls='--')
+    return ax
 
 
 def mpl_outside_legend(ax, **kwargs):

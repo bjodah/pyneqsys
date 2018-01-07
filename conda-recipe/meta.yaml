@@ -11,27 +11,32 @@ source:
 build:
   noarch: python
   number: 0
-  script: python setup.py install --single-version-externally-managed --record record.txt
+  script: python -m pip install --no-deps --ignore-installed .
 
 requirements:
   build:
     - python
     - setuptools
+    - pip
   run:
     - python
     - numpy >1.7
-    - scipy
-    - sym >=0.3.0
+    - scipy >=0.19.1
+    - sym >=0.3.1
     - sympy >=1.1.1
-    - symcxx
-    - python-symengine
-    - pysym
+    - matplotlib >=1.5.3
 
 test:
   imports:
     - {{ name }}
   requires:
     - pytest
+    - python-symengine
+    - symcxx
+    - pysym
+    - pykinsol
+    - ipopt
+    - levmar
   commands:
     - pytest --pyargs {{ name }}
 
