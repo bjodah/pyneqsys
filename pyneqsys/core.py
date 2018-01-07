@@ -459,7 +459,19 @@ class NeqSys(_NeqSysBase):
         import warnings
         from ipopt import minimize_ipopt
         warnings.warn("ipopt interface untested at the moment")
-        return minimize_ipopt(self.f_cb, intern_x0, jac=self.j_cb)
+        def f_cb(x):
+            f_cb.nfev += 1
+            return np.sum(np.abs(self.f_cb(x, self.internal_params)))
+        f_cb.nfev = 0
+
+        if self.j_cb is not None:
+            def j_cb(x):
+                j_cb.njev += 1
+                return self.j_cb(x, self.internal_params)
+            j_cb.njev = 0
+            kwargs['jac'] = j_cb
+
+        return minimize_ipopt(f_cb, intern_x0, **kwargs)
 
     def _solve_levmar(self, intern_x0, tol=1e-8, **kwargs):
         import warnings
