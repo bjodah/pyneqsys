@@ -7,9 +7,15 @@ pyneqsys
 .. image:: https://circleci.com/gh/bjodah/pyneqsys.svg?style=svg
    :target: https://circleci.com/gh/bjodah/pyneqsys
    :alt: Build status on CircleCI
+.. image:: https://secure.travis-ci.org/bjodah/pyneqsys.svg?branch=master
+   :target: http://travis-ci.org/bjodah/pyneqsys
+   :alt: Build status on Travis-CI
 .. image:: https://img.shields.io/pypi/v/pyneqsys.svg
    :target: https://pypi.python.org/pypi/pyneqsys
    :alt: PyPI version
+.. image:: https://img.shields.io/badge/python-2.7,3.5,3.6-blue.svg
+   :target: https://www.python.org/
+   :alt: Python version
 .. image:: https://img.shields.io/pypi/l/pyneqsys.svg
    :target: https://github.com/bjodah/pyneqsys/blob/master/LICENSE
    :alt: License

@@ -184,12 +184,13 @@ class _NeqSysBase(object):
         ax_sol = self.plot_series(sol, varied_data, varied_idx, info=nfo,
                                   **(plot_kwargs or {}))
 
-        if (plot_residuals_kwargs or {}).get('ax', None):
-            ax_resid = self.plot_series_residuals_internal(
+        extra = dict(ax_sol=ax_sol, info=nfo)
+        if plot_residuals_kwargs:
+            extra['ax_resid'] = self.plot_series_residuals_internal(
                 varied_data, varied_idx, info=nfo,
                 **(plot_residuals_kwargs or {})
             )
-        return sol, dict(ax_sol=ax_sol, ax_resid=ax_resid, info=nfo)
+        return sol, extra
 
 
 class NeqSys(_NeqSysBase):
@@ -637,6 +638,7 @@ class ChainedNeqSys(_NeqSysBase):
     def __init__(self, neqsystems, **kwargs):
         super(ChainedNeqSys, self).__init__(**kwargs)
         self.neqsystems = neqsystems
+        self.f_cb = self.neqsystems[0].f_cb
 
     def solve(self, x0, params=(), internal_x0=None, solver=None, **kwargs):
         x_vecs = []

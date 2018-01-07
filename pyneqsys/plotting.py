@@ -37,13 +37,9 @@ def plot_series(xres, varied_data, indices=None, info=None,
         ax.plot(varied_data, xres[:, idx], **plot_kwargs_cb(idx, labels=labels))
 
     if fail_vline:
-        if ax is None:
-            from matplotlib.pyplot import axvline
-        else:
-            axvline = ax.axvline
         for i, nfo in enumerate(info):
             if not nfo['success']:
-                axvline(varied_data[i], c='k', ls='--')
+                ax.axvline(varied_data[i], c='k', ls='--')
     return ax
 
 
