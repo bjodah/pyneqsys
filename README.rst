@@ -173,7 +173,7 @@ Using only a web-browser (and an internet connection) it is possible to explore 
 notebooks here: (by the courtesy of the people behind mybinder)
 
 .. image:: http://mybinder.org/badge.svg
-   :target: https://mybinder.org/v2/gh/bjodah/pyneqsys/3c33f1ee66bf753720ad2f2df0bfc21a94d509e2?filepath=index.ipynb
+   :target: https://mybinder.org/v2/gh/bjodah/pyneqsys/d8775becc6f30b4d3e7920f53d5f318c0672195b?filepath=index.ipynb
    :alt: Binder
 
 License
