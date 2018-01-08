@@ -1,5 +1,5 @@
 {% set name = "pyneqsys" %}
-{% set version = "0.5.0.git" %}
+{% set version = "0.6.0.git" %}
 
 package:
   name: {{ name|lower }}
