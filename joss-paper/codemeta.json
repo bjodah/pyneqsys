@@ -1,0 +1,23 @@
+{
+  "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+  "@type": "Code",
+  "author": [
+    {
+      "@id": "https://orcid.org/0000-0003-0596-0222",
+      "@type": "Person",
+      "email": "bjodah@gmail.com",
+      "name": "Björn Dahlgren",
+      "affiliation": "KTH Royal Institute of Technology"
+    }
+  ],
+  "identifier": "http://dx.doi.org/????/zenodo.?????",
+  "codeRepository": "https://github.com/bjodah/pyneqsys",
+  "datePublished": "2018-01-08",
+  "dateModified": "2018-01-08",
+  "dateCreated": "2018-01-08",
+  "description": "Solve symbolically defined systems of non-linear equations numerically",
+  "keywords": "nonlinear-equations, least-squares, root-finding, symbolic-manipulation",
+  "license": "BSD",
+  "title": "pyneqsys",
+  "version": "v0.5.0"
+}

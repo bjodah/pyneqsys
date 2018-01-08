@@ -167,6 +167,14 @@ For more examples look see
 `examples/ <https://github.com/bjodah/pyneqsys/tree/master/examples>`_, and rendered jupyter notebooks here:
 `<http://hera.physchem.kth.se/~pyneqsys/branches/master/examples>`_
 
+Run notebooks using binder
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using only a web-browser (and an internet connection) it is possible to explore the
+notebooks here: (by the courtesy of the people behind mybinder)
+
+.. image:: http://mybinder.org/badge.svg
+   :target: https://mybinder.org/v2/gh/bjodah/pyneqsys/v0.5.0?filepath=index.ipynb
+   :alt: Binder
 
 License
 -------
