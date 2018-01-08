@@ -36,7 +36,7 @@ The numerical root finding is perfomed using either:
 - levmar (Levenberg-Marquardt): levmar.levmar `<https://bjodah.github.io/levmar/latest/levmar.html#levmar.levmar>`_
 
 In addition to offering a unified interface to different solvers, ``pyneqsys``
-can also derive the Jacobian analytically (when using ``pyodesys.SymbolicSys``).
+can also derive the Jacobian analytically (when using ``pyneqsys.SymbolicSys``).
 This is useful since doing so manually is widely recognized as both tedious and error
 prone.
 
@@ -74,10 +74,10 @@ Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 If you used ``conda`` to install pyneqsys_ you can skip this section.
 But if you use ``pip`` you may want to know that the default installation
-of ``pyodesys`` only requires SciPy::
+of ``pyneqsys`` only requires SciPy::
 
-   $ pip install pyodesys
-   $ pytest --pyargs pyodesys -rs
+   $ pip install pyneqsys
+   $ pytest --pyargs pyneqsys -rs
 
 The above command should finish without errors but with some skipped tests.
 The reason for why some tests are skipped should be because missing optional solvers.
@@ -93,16 +93,16 @@ the solvers and then their python bindings. The 3rd party requirements are as fo
 if you want to see what packages need to be installed on a Debian based system you may look at this
 `Dockerfile <scripts/environment/Dockerfile>`_.
 
-If you manage to install all three external libraries you may install pyodesys with the option "all"::
+If you manage to install all three external libraries you may install pyneqsys with the option "all"::
 
-  $ pip install pyodesys[all]
-  $ pytest --pyargs pyodesys -rs
+  $ pip install pyneqsys[all]
+  $ pytest --pyargs pyneqsys -rs
 
-now there should be no skipped tests. If you try to install pyodesys on a machine where you do not have
+now there should be no skipped tests. If you try to install pyneqsys on a machine where you do not have
 root permissions you may find the flag ``--user`` helpful when using pip. Also if there are multiple
 versions of python installed you may want to invoke python for an explicit version of python, e.g.::
 
-  $ python3.6 -m pip install --user pyodesys[all]
+  $ python3.6 -m pip install --user pyneqsys[all]
 
 see `setup.py <setup.py>`_ for the exact list of requirements.
 

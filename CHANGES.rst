@@ -1,3 +1,7 @@
+v0.5.1
+======
+- Re-release of v0.5.0 (issues uploading to PyPI)
+
 v0.5.0
 ======
 - Fix mpmath solver to acutally use mpf instances
