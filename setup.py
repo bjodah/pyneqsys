@@ -92,7 +92,7 @@ setup_kwargs = dict(
     url=url,
     license=license,
     packages=[pkg_name] + tests,
-    install_requires=['numpy>1.7', 'sym>=0.3.0', 'sympy>=1.1.1', 'scipy'],
+    install_requires=['numpy>1.7', 'sym>=0.3.1', 'sympy>=1.1.1', 'scipy'],
     extras_require=extras_req
 )
 

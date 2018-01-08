@@ -1,5 +1,6 @@
 from sympy.printing.latex import LatexPrinter
 
+
 class NeqSysTexPrinter(LatexPrinter):
 
     def _print_list(self, lst):

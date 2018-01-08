@@ -175,7 +175,6 @@ class _NeqSysBase(object):
             xerr[idx, :] = self.f_cb(res, params)
         return self.plot_series(xerr, varied_data, varied_idx, **kwargs)
 
-
     def solve_and_plot_series(self, x0, params, varied_data, varied_idx, solver=None, plot_kwargs=None,
                               plot_residuals_kwargs=None, **kwargs):
         """ Solve and plot for a series of a varied parameter """
@@ -459,6 +458,7 @@ class NeqSys(_NeqSysBase):
         import warnings
         from ipopt import minimize_ipopt
         warnings.warn("ipopt interface untested at the moment")
+
         def f_cb(x):
             f_cb.nfev += 1
             return np.sum(np.abs(self.f_cb(x, self.internal_params)))

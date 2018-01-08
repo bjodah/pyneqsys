@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 
+
 def plot_series(xres, varied_data, indices=None, info=None,
                 fail_vline=None, plot_kwargs_cb=None,
                 ls=('-', '--', ':', '-.'),
