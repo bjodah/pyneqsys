@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python ==2.7
+  - python
   - numpy >1.7
   - scipy >=0.19.1
   - sym >=0.3.1
@@ -14,4 +14,3 @@ dependencies:
   - nbconvert
   - pykinsol
   - levmar
-  - cyipopt
