@@ -33,14 +33,14 @@ The numerical root finding is perfomed using either:
 - mpmath (arbitrary precision): `mpmath.calculus.optimization.MDNewton <http://mpmath.org/doc/1.0.0/calculus/optimization.html#mpmath.calculus.optimization.MDNewton>`_
 - kinsol (from SUNDIALS): `pykinsol.solve <http://bjodah.github.io/pykinsol/latest/pykinsol.html#pykinsol.solve>`_
 - nleq2 (ZIB library free for academic use): `pynleq2.solve <http://bjodah.github.io/pynleq2/pynleq2.html#pynleq2.solve>`_
-- levmar (Levenberg-Marquardt): levmar.levmar `<https://bjodah.github.io/levmar/latest/levmar.html#levmar.levmar>`_
+- levmar (Levenberg-Marquardt): `levmar.levmar <https://bjodah.github.io/levmar/latest/levmar.html#levmar.levmar>`_
 
 In addition to offering a unified interface to different solvers, ``pyneqsys``
 can also derive the Jacobian analytically (when using ``pyneqsys.SymbolicSys``).
 This is useful since doing so manually is widely recognized as both tedious and error
 prone.
 
-The symbolic representation is usually in the form of `SymPy <https://www.sympy.org/>`_
+The symbolic representation is usually in the form of `SymPy <http://www.sympy.org/>`_
 expressions, but the user may choose another symbolic back-end (see `sym <https://github.com/bjodah/sym>`_).
 
 In addition to deriving the Jacobian anyltically the symbolic representation can for
@@ -86,7 +86,7 @@ the solvers and then their python bindings. The 3rd party requirements are as fo
 
 - `pykinsol <https://github.com/bjodah/pykinsol>`_ (requires SUNDIALS_ ==2.7.0)
 - `levar <https://github.com/bjodah/levmar>`_
-- `mpmath <https://www.mpmath.org>`_
+- `mpmath <http://www.mpmath.org>`_
 
 .. _SUNDIALS: https://computation.llnl.gov/projects/sundials
 
@@ -183,7 +183,7 @@ The source code is Open Source and is released under the simplified 2-clause BSD
 Contributing
 ------------
 Contributors are welcome to suggest improvements at https://github.com/bjodah/pyneqsys
-(see further details `here <CONTRIBUTORS.rst>`_).
+(see further details `here <CONTRIBUTING.rst>`_).
 
 Author
 ------
