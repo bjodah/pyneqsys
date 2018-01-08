@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import matplotlib.pyplot as plt
-
 
 def plot_series(xres, varied_data, indices=None, info=None,
                 fail_vline=None, plot_kwargs_cb=None,
@@ -9,6 +7,8 @@ def plot_series(xres, varied_data, indices=None, info=None,
                 c=('k', 'r', 'g', 'b', 'c', 'm', 'y'), labels=None,
                 ax=None, names=None, latex_names=None):
     """ Plot the values of the solution vector vs the varied parameter """
+    import matplotlib.pyplot as plt
+
     if indices is None:
         indices = range(xres.shape[1])
 
