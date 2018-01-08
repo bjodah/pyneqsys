@@ -10,7 +10,7 @@
       "affiliation": "KTH Royal Institute of Technology"
     }
   ],
-  "identifier": "http://dx.doi.org/????/zenodo.?????",
+  "identifier": "http://dx.doi.org/10.5281/zenodo.1137816",
   "codeRepository": "https://github.com/bjodah/pyneqsys",
   "datePublished": "2018-01-08",
   "dateModified": "2018-01-08",
@@ -19,5 +19,5 @@
   "keywords": "nonlinear-equations, least-squares, root-finding, symbolic-manipulation",
   "license": "BSD",
   "title": "pyneqsys",
-  "version": "v0.5.0"
+  "version": "v0.5.1"
 }

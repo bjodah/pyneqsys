@@ -12,3 +12,6 @@ dependencies:
   - matplotlib >=1.5.3
   - notebook
   - nbconvert
+  - pykinsol
+  - levmar
+  - cyipopt
