@@ -289,21 +289,21 @@ def _powell(x, params, backend=math):
     return A*x[0]*x[1] - 1, exp(-x[0]) + exp(-x[1]) - (1 + A**-1)
 
 
-def _test_powell(powell_sys, x0=(1, 1), par=(1000.0,)):
-    x, info = powell_sys.solve(x0, par,
-                               solver=[None, 'mpmath'], tol=1e-12)
+def _test_powell(sys_solver_pairs, x0=(1, 1), par=(1000.0,)):
+    for sys, solver in sys_solver_pairs:
+        x0, info = sys.solve(x0, par, solver=solver, tol=1e-12)
     assert info['success']
-    x = sorted(x)
+    x = sorted(x0)
     assert abs(_powell_ref[0] - x[0]) < 2e-11
     assert abs(_powell_ref[1] - x[1]) < 6e-10
 
 
 def test_chained_solvers():
-    powell_sys = NeqSys(2, 2, _powell)
-    _test_powell(powell_sys)
+    powell_numpy = NeqSys(2, 2, _powell)
+    powell_mpmath = NeqSys(2, 2, _powell)
+    _test_powell([(powell_numpy, None), (powell_mpmath, 'mpmath')])
 
 
 def test_x_by_name():
-    powell_sys = NeqSys(2, f=_powell, names=['u', 'v'],
-                        x_by_name=True)
-    _test_powell(powell_sys, x0={'u': 1, 'v': 1})
+    powell_sys = NeqSys(2, f=_powell, names=['u', 'v'], x_by_name=True)
+    _test_powell(zip([powell_sys]*2, [None, 'mpmath']), x0={'u': 1, 'v': 1})

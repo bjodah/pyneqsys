@@ -39,11 +39,11 @@ class SolverBase(object):
 
     def f(self, x):
         self.nfev += 1
-        return self.inst.f_callback(x, self.inst.internal_params)
+        return self.inst.f_cb(x, self.inst.internal_params)
 
     def j(self, x):
         self.njev += 1
-        return self.inst.j_callback(x, self.inst.internal_params)
+        return self.inst.j_cb(x, self.inst.internal_params)
 
     def cb_factory(self):
         def cb(intern_x0, steptol=1e-8, ftol=1e-12, maxiter=100):

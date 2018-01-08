@@ -40,6 +40,8 @@ class SymbolicSys(NeqSys):
     backend : str or sym.Backend
         See documentation of `sym.Backend \
 <https://pythonhosted.org/sym/sym.html#sym.backend.Backend>`_.
+    module : str
+        ``module`` keyword argument passed to ``backend.Lambdify``.
     \*\*kwargs:
         See :py:class:`pyneqsys.core.NeqSys`
 
@@ -70,11 +72,12 @@ class SymbolicSys(NeqSys):
         self.params = params
         self._jac = jac
         self.be = Backend(backend)
-        self.nf, self.nx = len(exprs), len(x)  # needed by get_*_callback
-        self.band = kwargs.get('band', None)  # needed by get_*_callback
+        self.nf, self.nx = len(exprs), len(x)  # needed by get_*_cb
+        self.band = kwargs.get('band', None)  # needed by get_*_cb
+        self.module = kwargs.pop('module', 'numpy')
         super(SymbolicSys, self).__init__(self.nf, self.nx,
-                                          self._get_f_callback(),
-                                          self._get_j_callback(),
+                                          self._get_f_cb(),
+                                          self._get_j_cb(),
                                           **kwargs)
 
     @classmethod
@@ -127,20 +130,43 @@ class SymbolicSys(NeqSys):
         else:
             return self._jac
 
-    def _get_f_callback(self):
+    def _get_f_cb(self):
         args = list(chain(self.x, self.params))
-        cb = self.be.Lambdify(args, self.exprs)
+        kw = dict(module=self.module, dtype=object if self.module == 'mpmath' else None)
+        try:
+            cb = self.be.Lambdify(args, self.exprs, **kw)
+        except TypeError:
+            cb = self.be.Lambdify(args, self.exprs)
 
         def f(x, params):
             return cb(np.concatenate((x, params), axis=-1))
         return f
 
-    def _get_j_callback(self):
-        cb = self.be.Lambdify(list(chain(self.x, self.params)), self.get_jac())
+    def _get_j_cb(self):
+        args = list(chain(self.x, self.params))
+        kw = dict(module=self.module, dtype=object if self.module == 'mpmath' else None)
+        try:
+            cb = self.be.Lambdify(args, self.get_jac(), **kw)
+        except TypeError:
+            cb = self.be.Lambdify(args, self.get_jac())
 
         def j(x, params):
             return cb(np.concatenate((x, params), axis=-1))
         return j
+
+    _use_symbol_latex_names = True
+
+    def _repr_latex_(self):  # pretty printing in Jupyter notebook
+        from ._sympy import NeqSysTexPrinter
+        if self.latex_names and (self.latex_param_names if len(self.params) else True):
+            pretty = {s: n for s, n in chain(
+                zip(self.x, self.latex_names) if self._use_symbol_latex_names else [],
+                zip(self.params, self.latex_param_names)
+            )}
+        else:
+            pretty = {}
+
+        return '$%s$' % NeqSysTexPrinter(dict(symbol_names=pretty)).doprint(self.exprs)
 
 
 class TransformedSys(SymbolicSys):
@@ -150,17 +176,19 @@ class TransformedSys(SymbolicSys):
 
     Parameters
     ----------
-    x: iterable of variables
-    exprs: iterable of expressions
-         expressions to find root for (untransformed)
-    transf: iterable of pairs of expressions
-        forward, backward transformed instances of x
-    params: iterable of symbols
-    post_adj: callable (default: None)
-        to tweak expression after transformation
-    \*\*kwargs:
-        keyword arguments passed onto :class:`SymbolicSys`
+    x : iterable of variables
+    exprs : iterable of expressions
+         Expressions to find root for (untransformed).
+    transf : iterable of pairs of expressions
+        Forward, backward transformed instances of x.
+    params : iterable of symbols
+    post_adj : callable (default: None)
+        To tweak expression after transformation.
+    \\*\\*kwargs :
+        Keyword arguments passed onto :class:`SymbolicSys`.
+
     """
+    _use_symbol_latex_names = False  # symbols have been transformed
 
     def __init__(self, x, exprs, transf, params=(), post_adj=None, **kwargs):
         self.fw, self.bw = zip(*transf)
@@ -181,12 +209,12 @@ class TransformedSys(SymbolicSys):
 
         Parameters
         ----------
-        cb: callable
-        transf_cbs: pair or iterable of pairs of callables
-        nx: int
-        nparams: int
-        pre_adj: callable
-        \*\*kwargs: passed onto TransformedSys
+        cb : callable
+        transf_cbs : pair or iterable of pairs of callables
+        nx : int
+        nparams : int
+        pre_adj : callable
+        \\*\\*kwargs : passed onto TransformedSys
         """
         be = Backend(kwargs.pop('backend', None))
         x = be.real_symarray('x', nx)
@@ -212,9 +240,9 @@ def linear_rref(A, b, Matrix=None, S=None):
 
     Parameters
     ----------
-    A: Matrix-like
-        iterable of rows
-    b: iterable
+    A : Matrix-like
+        Iterable of rows.
+    b : iterable
 
     Returns
     -------
@@ -233,25 +261,25 @@ def linear_rref(A, b, Matrix=None, S=None):
 
 
 def linear_exprs(A, x, b=None, rref=False, Matrix=None):
-    """
-    returns Ax - b
+    """ Returns Ax - b
 
     Parameters
     ----------
-    A: matrix_like of numbers
-        of shape (len(b), len(x))
-    x: iterable of symbols
-    b: array_like of numbers (default: None)
-        when None, assume zeros of length len(x)
-    Matrix: class
+    A : matrix_like of numbers
+        Of shape (len(b), len(x)).
+    x : iterable of symbols
+    b : array_like of numbers (default: None)
+        When ``None``, assume zeros of length ``len(x)``.
+    Matrix : class
         When ``rref == True``: A matrix class which supports slicing,
-        and methods ``dot`` and ``rref``. Defaults to sympy.Matrix
-    rref: bool (default: False)
-        calculate the reduced row echelon form of (A | -b)
+        and methods ``dot`` and ``rref``. Defaults to ``sympy.Matrix``.
+    rref : bool
+        Calculate the reduced row echelon form of (A | -b).
 
     Returns
     -------
-    A list of the elements in the resulting column vector
+    A list of the elements in the resulting column vector.
+
     """
     if b is None:
         b = [0]*len(x)

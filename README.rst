@@ -7,9 +7,15 @@ pyneqsys
 .. image:: https://circleci.com/gh/bjodah/pyneqsys.svg?style=svg
    :target: https://circleci.com/gh/bjodah/pyneqsys
    :alt: Build status on CircleCI
+.. image:: https://secure.travis-ci.org/bjodah/pyneqsys.svg?branch=master
+   :target: http://travis-ci.org/bjodah/pyneqsys
+   :alt: Build status on Travis-CI
 .. image:: https://img.shields.io/pypi/v/pyneqsys.svg
    :target: https://pypi.python.org/pypi/pyneqsys
    :alt: PyPI version
+.. image:: https://img.shields.io/badge/python-2.7,3.5,3.6-blue.svg
+   :target: https://www.python.org/
+   :alt: Python version
 .. image:: https://img.shields.io/pypi/l/pyneqsys.svg
    :target: https://github.com/bjodah/pyneqsys/blob/master/LICENSE
    :alt: License
@@ -25,7 +31,7 @@ The numerical root finding is perfomed using either:
 
 - scipy: `scipy.optimize.root <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root.html>`_
 - mpmath (arbitrary precision): `mpmath.calculus.optimization.MDNewton <http://mpmath.org/doc/1.0.0/calculus/optimization.html#mpmath.calculus.optimization.MDNewton>`_
-- kinsol (from SUNDIALS): `pykinsol.solve <http://bjodah.github.io/pykinsol/pykinsol.html#pykinsol.solve>`_
+- kinsol (from SUNDIALS): `pykinsol.solve <http://bjodah.github.io/pykinsol/latest/pykinsol.html#pykinsol.solve>`_
 - nleq2 (ZIB library free for academic use): `pynleq2.solve <http://bjodah.github.io/pynleq2/pynleq2.html#pynleq2.solve>`_
 - levmar (Levenberg-Marquardt): levmar.levmar `<https://bjodah.github.io/levmar/latest/levmar.html#levmar.levmar>`_
 
@@ -141,7 +147,7 @@ For expressions containing transcendental functions we need to provide a
    >>> def powell(x, params, backend=math):
    ...     A, exp = params[0], backend.exp
    ...     return A*x[0]*x[1] - 1, exp(-x[0]) + exp(-x[1]) - (1 + A**-1)
-   >>> powell_sys = SymbolicSys.from_callback(powell, 2, 1)
+   >>> powell_sys = SymbolicSys.from_callback(powell, 2, 1, names='x0 x1'.split())
    >>> x, info = powell_sys.solve([1, 1], [1000.0])
    >>> assert info['success']
    >>> print(', '.join(['%.6e' % _ for _ in sorted(x)]))
@@ -161,11 +167,18 @@ For more examples look see
 `examples/ <https://github.com/bjodah/pyneqsys/tree/master/examples>`_, and rendered jupyter notebooks here:
 `<http://hera.physchem.kth.se/~pyneqsys/branches/master/examples>`_
 
+Run notebooks using binder
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using only a web-browser (and an internet connection) it is possible to explore the
+notebooks here: (by the courtesy of the people behind mybinder)
+
+.. image:: http://mybinder.org/badge.svg
+   :target: https://mybinder.org/v2/gh/bjodah/pyneqsys/v0.5.0?filepath=index.ipynb
+   :alt: Binder
 
 License
 -------
 The source code is Open Source and is released under the simplified 2-clause BSD license. See `LICENSE <LICENSE>`_ for further details.
-Contributors are welcome to suggest improvements at https://github.com/bjodah/pyneqsys
 
 Contributing
 ------------

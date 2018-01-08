@@ -35,7 +35,7 @@ install:
 script:
     - conda install --quiet pip pytest numpy scipy sympy
     - python -m pip install -e .
-    - python -m pytest -ra --doctest-modules
+    - python -m pytest -ra
 
 notifications:
   email: false
