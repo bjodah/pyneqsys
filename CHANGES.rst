@@ -1,3 +1,9 @@
+v0.5.0
+======
+- Fix mpmath solver to acutally use mpf instances
+- Refactored plotting methods to return axes instances
+- Combined solving and plotting methods now return array and dict
+
 v0.4.4
 ======
 - Fix test suite (for conda-build)
