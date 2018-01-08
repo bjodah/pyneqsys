@@ -423,21 +423,28 @@ class NeqSys(_NeqSysBase):
         from mpmath.calculus.optimization import MDNewton
         mp = mpmath.mp
         mp.dps = dps
+
+        def _mpf(val):
+            try:
+                return mp.mpf(val)
+            except TypeError:  # e.g. mpmath chokes on numpy's int64
+                return mp.mpf(float(val))
+        intern_p = tuple(_mpf(_p) for _p in self.internal_params)
         maxsteps = maxsteps or MDNewton.maxsteps
         tol = tol or mp.eps * 1024
 
         def f_cb(*x):
             f_cb.nfev += 1
-            return self.f_cb(x, self.internal_params)
+            return self.f_cb(x, intern_p)
         f_cb.nfev = 0
 
         if self.j_cb is not None:
             def j_cb(*x):
                 j_cb.njev += 1
-                return self.j_cb(x, self.internal_params)
+                return self.j_cb(x, intern_p)
             j_cb.njev = 0
             kwargs['J'] = j_cb
-        intern_x0 = tuple(mp.mpf(_x) for _x in intern_x0)
+        intern_x0 = tuple(_mpf(_x) for _x in intern_x0)
         iters = MDNewton(mp, f_cb, intern_x0, norm=mp.norm, verbose=False, **kwargs)
         i = 0
         success = False

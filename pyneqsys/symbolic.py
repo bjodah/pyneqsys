@@ -132,8 +132,11 @@ class SymbolicSys(NeqSys):
 
     def _get_f_cb(self):
         args = list(chain(self.x, self.params))
-        cb = self.be.Lambdify(args, self.exprs, module=self.module,
-                              dtype=object if self.module == 'mpmath' else None)
+        kw = dict(module=self.module, dtype=object if self.module == 'mpmath' else None)
+        try:
+            cb = self.be.Lambdify(args, self.exprs, **kw)
+        except TypeError:
+            cb = self.be.Lambdify(args, self.exprs)
 
         def f(x, params):
             return cb(np.concatenate((x, params), axis=-1))
@@ -141,8 +144,11 @@ class SymbolicSys(NeqSys):
 
     def _get_j_cb(self):
         args = list(chain(self.x, self.params))
-        cb = self.be.Lambdify(args, self.get_jac(), module=self.module,
-                              dtype=object if self.module == 'mpmath' else None)
+        kw = dict(module=self.module, dtype=object if self.module == 'mpmath' else None)
+        try:
+            cb = self.be.Lambdify(args, self.get_jac(), **kw)
+        except TypeError:
+            cb = self.be.Lambdify(args, self.get_jac())
 
         def j(x, params):
             return cb(np.concatenate((x, params), axis=-1))
