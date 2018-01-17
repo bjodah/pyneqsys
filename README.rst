@@ -25,7 +25,7 @@ pyneqsys
 
 `pyneqsys <https://github.com/bjodah/pyneqsys>`_ provides a convenience class for 
 representing and solving non-linear equation systems from symbolic expressions
-(provided e.g. with the help of `SymPy <http://www.sympy.org>`_).
+(provided e.g. with the help of SymPy_).
 
 The numerical root finding is perfomed using either:
 
@@ -40,8 +40,8 @@ can also derive the Jacobian analytically (when using ``pyneqsys.SymbolicSys``).
 This is useful since doing so manually is widely recognized as both tedious and error
 prone.
 
-The symbolic representation is usually in the form of `SymPy <http://www.sympy.org/>`_
-expressions, but the user may choose another symbolic back-end (see `sym <https://github.com/bjodah/sym>`_).
+The symbolic representation is usually in the form of SymPy_ expressions,
+but the user may choose another symbolic back-end (see `sym <https://github.com/bjodah/sym>`_).
 
 In addition to deriving the Jacobian analytically the symbolic representation can for
 example apply row-reduce. This is usful for when you have a overdetermined system (
@@ -53,6 +53,8 @@ Last, but not the least having a symbolic representation of your system of equat
 allows you to generate publication quality latex representations of your equations (through
 SymPy's latex printer) from a **single** source‒no more error prone hand-rewriting of the same
 equations in another format for presentation!
+
+.. SymPy_: http://www.sympy.org
 
 Documentation
 -------------
