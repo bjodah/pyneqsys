@@ -18,12 +18,12 @@ pyneqsys
    :alt: Python version
 .. image:: https://img.shields.io/pypi/l/pyneqsys.svg
    :target: https://github.com/bjodah/pyneqsys/blob/master/LICENSE
-   :alt: License
+   :alt: License file
 .. image:: http://hera.physchem.kth.se/~pyneqsys/branches/master/htmlcov/coverage.svg
    :target: http://hera.physchem.kth.se/~pyneqsys/branches/master/htmlcov
    :alt: coverage
 
-`pyneqsys <https://github.com/bjodah/pyneqsys>`_ provides a convenience class for 
+pyneqsys provides a convenience class for 
 representing and solving non-linear equation systems from symbolic expressions
 (provided e.g. with the help of SymPy_).
 
@@ -35,7 +35,7 @@ The numerical root finding is perfomed using either:
 - nleq2 (ZIB library free for academic use): `pynleq2.solve <http://bjodah.github.io/pynleq2/pynleq2.html#pynleq2.solve>`_
 - levmar (Levenberg-Marquardt): `levmar.levmar <https://bjodah.github.io/levmar/latest/levmar.html#levmar.levmar>`_
 
-In addition to offering a unified interface to different solvers, ``pyneqsys``
+In addition to offering a unified interface to different solvers, pyneqsys
 can also derive the Jacobian analytically (when using ``pyneqsys.SymbolicSys``).
 This is useful since doing so manually is widely recognized as both tedious and error
 prone.
@@ -54,7 +54,7 @@ allows you to generate publication quality latex representations of your equatio
 SymPy's latex printer) from a **single** source‒no more error prone hand-rewriting of the same
 equations in another format for presentation!
 
-.. SymPy_: http://www.sympy.org
+.. _SymPy: http://www.sympy.org
 
 Documentation
 -------------
@@ -90,7 +90,6 @@ the solvers and then their python bindings. The 3rd party requirements are as fo
 - `levar <https://github.com/bjodah/levmar>`_
 - `mpmath <http://www.mpmath.org>`_
 
-.. _SUNDIALS: https://computation.llnl.gov/projects/sundials
 
 if you want to see what packages need to be installed on a Debian based system you may look at this
 `Dockerfile <scripts/environment/Dockerfile>`_.
@@ -107,6 +106,8 @@ versions of python installed you may want to invoke python for an explicit versi
   $ python3.6 -m pip install --user pyneqsys[all]
 
 see `setup.py <setup.py>`_ for the exact list of requirements.
+
+.. _SUNDIALS: https://computation.llnl.gov/projects/sundials
 
 Using Docker
 ~~~~~~~~~~~~
@@ -178,9 +179,12 @@ notebooks here: (by the courtesy of the people behind mybinder)
    :target: https://mybinder.org/v2/gh/bjodah/pyneqsys/d8775becc6f30b4d3e7920f53d5f318c0672195b?filepath=index.ipynb
    :alt: Binder
 
-License
--------
-The source code is Open Source and is released under the simplified 2-clause BSD license. See `LICENSE <LICENSE>`_ for further details.
+Licensing
+---------
+The source code is Open Source and is released under the simplified 2-clause BSD license. See LICENSE_ for further details.
+
+.. _LICENSE: LICENSE
+
 
 Contributing
 ------------
