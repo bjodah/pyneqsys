@@ -1,3 +1,7 @@
+v0.5.2
+======
+- Re-release of v0.5.0 (fixed README for PyPI using rstcheck & restructuredtext_lint)
+
 v0.5.1
 ======
 - Re-release of v0.5.0 (issues uploading to PyPI)
