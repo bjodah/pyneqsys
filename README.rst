@@ -43,13 +43,13 @@ prone.
 The symbolic representation is usually in the form of `SymPy <http://www.sympy.org/>`_
 expressions, but the user may choose another symbolic back-end (see `sym <https://github.com/bjodah/sym>`_).
 
-In addition to deriving the Jacobian anyltically the symbolic representation can for
+In addition to deriving the Jacobian analytically the symbolic representation can for
 example apply row-reduce. This is usful for when you have a overdetermined system (
 formed from e.g. applying conservation laws) and want to solve the system by
 root-finding rather than using a least-square optimization of e.g. Levenberg-Marquardt
 style.
 
-Last, but not the least. Having a symbolic representation of your system of equations
+Last, but not the least having a symbolic representation of your system of equations
 allows you to generate publication quality latex representations of your equations (through
 SymPy's latex printer) from a **single** source‒no more error prone hand-rewriting of the same
 equations in another format for presentation!
@@ -153,7 +153,7 @@ For expressions containing transcendental functions we need to provide a
    >>> print(', '.join(['%.6e' % _ for _ in sorted(x)]))
    1.477106e-04, 6.769996e+00
 
-pyneqsys also allows the user to solve an eqauation system for a span of
+pyneqsys also allows the user to solve a system of equations for a span of
 values for a parameter, and optionally plot the result vs. the varied value:
 
 .. code:: python
