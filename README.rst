@@ -161,8 +161,11 @@ values for a parameter, and optionally plot the result vs. the varied value:
 
 .. code:: python
 
+   >>> import matplotlib.pyplot as plt
    >>> import numpy as np
-   >>> all_x, all_info = powell_sys.solve_and_plot_series(x, [1000.0], np.linspace(1e3, 3e3), 0)  # doctest: +SKIP
+   >>> x0_varied, x0_idx = np.linspace(1e3, 3e3), 0
+   >>> all_x, all_info = powell_sys.solve_and_plot_series(x, [1000.0], x0_varied, x0_idx)
+   >>> plt.savefig('example.png')
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyneqsys/master/examples/example.png
 

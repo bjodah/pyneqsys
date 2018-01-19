@@ -42,6 +42,11 @@ def _ensure_3args(func):
 
 
 class _NeqSysBase(object):
+    """ Baseclass for system of non-linear equations.
+
+    This class contains shared logic used by its subclasses and is not meant to be used
+    by end-users directly.
+    """
 
     def __init__(self, names=None, param_names=None, x_by_name=None, par_by_name=None,
                  latex_names=None, latex_param_names=None):
@@ -64,7 +69,7 @@ class _NeqSysBase(object):
         return getattr(self, '_solve_' + solver)
 
     def rms(self, x, params=()):
-        """ Returns root means square value of f(x, params) """
+        """ Returns root mean square value of f(x, params) """
         internal_x, internal_params = self.pre_process(np.asarray(x),
                                                        np.asarray(params))
         if internal_params.ndim > 1:
@@ -98,8 +103,16 @@ class _NeqSysBase(object):
             See :meth:`solve`.
         propagate : bool (default: True)
             Use last successful solution as ``x0`` in consecutive solves.
-        \*\*kwargs:
+        \\*\\*kwargs :
             Keyword arguments pass along to :meth:`solve`.
+
+        Returns
+        -------
+        xout : array
+            Of shape ``(varied_data.size, x0.size)``.
+        info_dicts : list of dictionaries
+             Dictionaries each containing keys such as containing 'success', 'nfev', 'njev' etc.
+
         """
         if self.x_by_name and isinstance(x0, dict):
             x0 = [x0[k] for k in self.names]
@@ -145,6 +158,12 @@ class _NeqSysBase(object):
         return xout, info_dicts
 
     def plot_series(self, xres, varied_data, varied_idx, **kwargs):
+        """ Plots the results from :meth:`solve_series`.
+
+        Parameters
+        ----------
+        xres :
+        """
         for attr in 'names latex_names'.split():
             if kwargs.get(attr, None) is None:
                 kwargs[attr] = getattr(self, attr)
