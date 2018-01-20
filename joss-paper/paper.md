@@ -19,28 +19,23 @@ bibliography: paper.bib
 Solving systems of non-linear equations numerically is a common task in scientific modeling
 work. Many software libraries have the capability to solve these kinds of systems, however, each
 require slightly different forms of input. In addition, it is often important that the
-user formulates the system in a manner which is suitable for the numerical algorithm. Coming
-up with an effective formulation is often an iterative process, and it is therefore of great
-value if transformations of systems could be performed symbolically.
+user formulates the system in a manner which is suitable for the numerical algorithm. Finding an effective formulation is often an iterative process, which is facilitated if the system can be transformed symbolically.
 
-*pyneqsys* offers a common interface to a handful of solvers. The user may also use it for
-its facilities for working with the system symbolically. Having a symbolic representation
+*pyneqsys* offers a common interface to a handful of solvers. It furthermore provides tools to input and work with such systems symbolically. Having a symbolic representation
 allows *pyneqsys* to automatically derive the Jacobian matrix, which is a task which is
 laborious and a source of error when performed by hand. By relying on a computer algebra system,
-*pyneqsys* allows the user to apply e.g. variable transformations and also generate representations
-in e.g. LaTeX, MathML etc. By default SymPy [@Meurer2017] is used as the symbolic back-end, but the
-users may choose to use another library if they so wish.
+*pyneqsys* allows the user to apply e.g. variable transformations or generate representations
+in LaTeX, MathML etc. By default SymPy [@Meurer2017] is used as the symbolic back-end, but other libraries are also supported.
 
 Adapting *pyneqsys* to use new third party solvers is straightforward and some example solvers are
-provided with the library. Together with the ability to perform variable transformations symbolically
-*pyneqsys* allows the users to write code for their problem *once*, which greatly lowers the burden
-of validation and also speeds-up the iterative nature of finding the best method for solving the problem.
+provided with the library. Together with its ability to perform variable transformations symbolically
+*pyneqsys* allows the users to write code for their problem *once* and then easily test different formulations and solvers. This greatly lowers the burden of validation and speeds-up the iterative finding of the best method for solving the problem.
 
 
 # Features
 - Unified interface to the KINSOL solver from SUNDIALS [@hindmarsh2005sundials],
   SciPy's solvers [@jones_scipy_2001], levmar [@lourakis04LM], NLEQ2 [@weimann1991family] and mpmath [@mpmath].
-- Convenience methods for solving and plotting solutions.
+- Convenience methods for solving and plotting solutions as parameters of the system are varied.
 - Automatic derivation of the Jacobian matrix.
 - Symbolic variable transformations.
 - Symbolic removal of linearly dependent equations by rewriting (linear parts) in reduced row echelon form.
