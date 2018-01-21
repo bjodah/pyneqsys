@@ -42,6 +42,11 @@ def _ensure_3args(func):
 
 
 class _NeqSysBase(object):
+    """ Baseclass for system of non-linear equations.
+
+    This class contains shared logic used by its subclasses and is not meant to be used
+    by end-users directly.
+    """
 
     def __init__(self, names=None, param_names=None, x_by_name=None, par_by_name=None,
                  latex_names=None, latex_param_names=None):
@@ -64,7 +69,7 @@ class _NeqSysBase(object):
         return getattr(self, '_solve_' + solver)
 
     def rms(self, x, params=()):
-        """ Returns root means square value of f(x, params) """
+        """ Returns root mean square value of f(x, params) """
         internal_x, internal_params = self.pre_process(np.asarray(x),
                                                        np.asarray(params))
         if internal_params.ndim > 1:
@@ -86,7 +91,7 @@ class _NeqSysBase(object):
         params : array_like
             Parameter values
         vaired_data : array_like
-            numerical values of the varied parameter
+            Numerical values of the varied parameter.
         varied_idx : int or str
             Index of the varied parameter (indexing starts at 0).
             If ``self.par_by_name`` this should be the name (str) of the varied
@@ -98,8 +103,16 @@ class _NeqSysBase(object):
             See :meth:`solve`.
         propagate : bool (default: True)
             Use last successful solution as ``x0`` in consecutive solves.
-        \*\*kwargs:
+        \\*\\*kwargs :
             Keyword arguments pass along to :meth:`solve`.
+
+        Returns
+        -------
+        xout : array
+            Of shape ``(varied_data.size, x0.size)``.
+        info_dicts : list of dictionaries
+             Dictionaries each containing keys such as containing 'success', 'nfev', 'njev' etc.
+
         """
         if self.x_by_name and isinstance(x0, dict):
             x0 = [x0[k] for k in self.names]
@@ -145,6 +158,20 @@ class _NeqSysBase(object):
         return xout, info_dicts
 
     def plot_series(self, xres, varied_data, varied_idx, **kwargs):
+        """ Plots the results from :meth:`solve_series`.
+
+        Parameters
+        ----------
+        xres : array
+            Of shape ``(varied_data.size, self.nx)``.
+        varied_data : array
+            See :meth:`solve_series`.
+        varied_idx : int or str
+            See :meth:`solve_series`.
+        \\*\\*kwargs :
+            Keyword arguments passed to :func:`pyneqsys.plotting.plot_series`.
+
+        """
         for attr in 'names latex_names'.split():
             if kwargs.get(attr, None) is None:
                 kwargs[attr] = getattr(self, attr)
@@ -158,6 +185,7 @@ class _NeqSysBase(object):
         return ax
 
     def plot_series_residuals(self, xres, varied_data, varied_idx, params, **kwargs):
+        """ Analogous to :meth:`plot_series` but will plot residuals. """
         nf = len(self.f_cb(*self.pre_process(xres[0], params)))
         xerr = np.empty((xres.shape[0], nf))
         new_params = np.array(params)
@@ -168,6 +196,7 @@ class _NeqSysBase(object):
         return self.plot_series(xerr, varied_data, varied_idx, **kwargs)
 
     def plot_series_residuals_internal(self, varied_data, varied_idx, **kwargs):
+        """ Analogous to :meth:`plot_series` but for internal residuals from last run. """
         nf = len(self.f_cb(*self.pre_process(
             self.internal_xout[0], self.internal_params_out[0])))
         xerr = np.empty((self.internal_xout.shape[0], nf))
@@ -177,7 +206,11 @@ class _NeqSysBase(object):
 
     def solve_and_plot_series(self, x0, params, varied_data, varied_idx, solver=None, plot_kwargs=None,
                               plot_residuals_kwargs=None, **kwargs):
-        """ Solve and plot for a series of a varied parameter """
+        """ Solve and plot for a series of a varied parameter.
+
+        Convenience method, see :meth:`solve_series`, :meth:`plot_series` &
+        :meth:`plot_series_residuals_internal` for more information.
+        """
         sol, nfo = self.solve_series(
             x0, params, varied_data, varied_idx, solver=solver, **kwargs)
         ax_sol = self.plot_series(sol, varied_data, varied_idx, info=nfo,
@@ -193,14 +226,15 @@ class _NeqSysBase(object):
 
 
 class NeqSys(_NeqSysBase):
-    """Represent a system of non-linear equations
+    """Represents a system of non-linear equations.
 
-    Object representing nonlinear equation system.
-    Provides unified interface to:
+    This class provides a unified interface to:
 
     - scipy.optimize.root
     - NLEQ2
     - KINSOL
+    - mpmath
+    - levmar
 
     Parameters
     ----------
@@ -219,6 +253,16 @@ class NeqSys(_NeqSysBase):
         Names of variables, used for plotting and for referencing by name.
     param_names : iterable of strings (default: None)
         Names of the parameters, used for referencing parameters by name.
+    x_by_name : bool, default: ``False``
+        Will values for *x* be referred to by name (in dictionaries)
+        instead of by index (in arrays)?
+    par_by_name : bool, default: ``False``
+        Will values for parameters be referred to by name (in dictionaries)
+        instead of by index (in arrays)?
+    latex_names : iterable of str, optional
+        Names of variables in LaTeX format.
+    latex_param_names : iterable of str, optional
+        Names of parameters in LaTeX format.
     pre_processors : iterable of callables (optional)
         (Forward) transformation of user-input to :py:meth:`solve`
         signature: ``f(x1[:], params1[:]) -> x2[:], params2[:]``.
@@ -264,7 +308,7 @@ class NeqSys(_NeqSysBase):
         self.internal_x0_cb = internal_x0_cb
 
     def pre_process(self, x0, params=()):
-        """ Used internally for transformation of variables """
+        """ Used internally for transformation of variables. """
         # Should be used by all methods matching "solve_*"
         if self.x_by_name and isinstance(x0, dict):
             x0 = [x0[k] for k in self.names]
@@ -275,23 +319,22 @@ class NeqSys(_NeqSysBase):
         return x0, np.atleast_1d(params)
 
     def post_process(self, xout, params_out):
-        """ Used internally for transformation of variables """
+        """ Used internally for transformation of variables. """
         # Should be used by all methods matching "solve_*"
         for post_processor in self.post_processors:
             xout, params_out = post_processor(xout, params_out)
         return xout, params_out
 
     def solve(self, x0, params=(), internal_x0=None, solver=None, attached_solver=None, **kwargs):
-        """
-        Solve with ``solver``. Convenience method.
+        """ Solve with user specified ``solver`` choice.
 
         Parameters
         ----------
         x0: 1D array of floats
             Guess (subject to ``self.post_processors``)
-        params: 1D array_like of floats (default: ())
+        params: 1D array_like of floats
             Parameters (subject to ``self.post_processors``)
-        internal_x0: 1D array of floats (default: None)
+        internal_x0: 1D array of floats
             When given it overrides (processed) ``x0``. ``internal_x0`` is not
             subject to ``self.post_processors``.
         solver: str or callable or None or iterable of such
@@ -299,7 +342,7 @@ class NeqSys(_NeqSysBase):
             if ``None``: chooses from PYNEQSYS_SOLVER environment variable.
             if iterable: chain solving.
         attached_solver: callable factory
-            invokes: solver = attached_solver(self)
+            Invokes: solver = attached_solver(self).
 
         Returns
         -------
@@ -339,9 +382,9 @@ class NeqSys(_NeqSysBase):
         return x0, nfo
 
     def _solve_scipy(self, intern_x0, tol=1e-8, method=None, **kwargs):
-        """
-        Use ``scipy.optimize.root``
-        see: http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root.html
+        """ Uses ``scipy.optimize.root``
+
+        See: http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root.html
 
         Parameters
         ----------
@@ -349,14 +392,8 @@ class NeqSys(_NeqSysBase):
             initial guess
         tol: float
             Tolerance
-        method: str (default: None)
-            what method to use.
-
-        Returns
-        -------
-        Length 2 tuple:
-           - solution (array of length self.nx)
-           - additional output from solver
+        method: str
+            What method to use. Defaults to ``'lm'`` if ``self.nf > self.nx`` otherwise ``'hybr'``.
 
         """
         from scipy.optimize import root
@@ -381,7 +418,6 @@ class NeqSys(_NeqSysBase):
         return root(self.f_cb, intern_x0, jac=self.j_cb, method=method, tol=tol, **new_kwargs)
 
     def _solve_nleq2(self, intern_x0, tol=1e-8, method=None, **kwargs):
-        """ Provisional, subject to unnotified API breaks """
         from pynleq2 import solve
 
         def f_cb(x, ierr):
@@ -464,7 +500,7 @@ class NeqSys(_NeqSysBase):
     def _solve_ipopt(self, intern_x0, **kwargs):
         import warnings
         from ipopt import minimize_ipopt
-        warnings.warn("ipopt interface untested at the moment")
+        warnings.warn("ipopt interface has not yet undergone thorough testing.")
 
         def f_cb(x):
             f_cb.nfev += 1
@@ -482,7 +518,6 @@ class NeqSys(_NeqSysBase):
 
     def _solve_levmar(self, intern_x0, tol=1e-8, **kwargs):
         import warnings
-        warnings.warn("levmar interface is provisional, may change.")
         import levmar
 
         if 'eps1' in kwargs or 'eps2' in kwargs or 'eps3' in kwargs:
@@ -523,20 +558,20 @@ class ConditionalNeqSys(_NeqSysBase):
     of booleans which is passed to a user provided factory function of
     NeqSys instances. The conditions may be asymmetrical (each condition
     consits of two callbacks, one for evaluating when the condition was
-    previously False, and one when it was previously True. The motivation
+    previously ``False``, and one when it was previously ``True``. The motivation
     for this asymmetry is that a user may want to introduce a tolerance for
     numerical noise in the solution (and avoid possibly endless loops).
 
     If ``fastcache`` is available an LRU cache will be used for
-    ``neqsys_factory``, it is therefore important that the function is
-    idempotent.
+    ``neqsys_factory``, it is therefore important that the factory function
+    is idempotent.
 
     Parameters
     ----------
     condition_cb_pairs : list of (callback, callback) tuples
         Callbacks should have the signature: ``f(x, p) -> bool``.
     neqsys_factory : callback
-        Should have the signature ``f(conds) -> NeqSys`` instance
+        Should have the signature ``f(conds) -> NeqSys instance``,
         where conds is a list of bools.
     names : list of strings
 
@@ -582,7 +617,26 @@ class ConditionalNeqSys(_NeqSysBase):
 
     def solve(self, x0, params=(), internal_x0=None, solver=None,
               conditional_maxiter=20, initial_conditions=None, **kwargs):
-        """ Solve the problem (systems of equations) """
+        """ Solve the problem (systems of equations)
+
+        Parameters
+        ----------
+        x0 : array
+            Guess.
+        params : array
+            See :meth:`NeqSys.solve`.
+        internal_x0 : array
+            See :meth:`NeqSys.solve`.
+        solver : str or callable or iterable of such.
+            See :meth:`NeqSys.solve`.
+        conditional_maxiter : int
+            Maximum number of switches between conditions.
+        initial_conditions : iterable of bools
+            Corresponding conditions to ``x0``
+        \\*\\*kwargs :
+            Keyword arguments passed on to :meth:`NeqSys.solve`.
+
+        """
         if initial_conditions is not None:
             conds = initial_conditions
         else:
@@ -621,10 +675,14 @@ class ConditionalNeqSys(_NeqSysBase):
             conds = self.get_conds(x, params)
         return self.neqsys_factory(conds).post_process(x, params)
 
+    post_process.__doc__ = NeqSys.post_process.__doc__
+
     def pre_process(self, x, params, conds=None):
         if conds is None:
             conds = self.get_conds(x, params)
         return self.neqsys_factory(conds).pre_process(x, params)
+
+    pre_process.__doc__ = NeqSys.pre_process.__doc__
 
     def f_cb(self, x, params, conds=None):
         if conds is None:
@@ -687,8 +745,14 @@ class ChainedNeqSys(_NeqSysBase):
         info['internal_x_vecs'] = internal_x_vecs
         return x0, info
 
+    solve.__doc__ = NeqSys.solve.__doc__
+
     def post_process(self, x, params):
         return self.neqsystems[0].post_process(x, params)  # outermost
 
+    post_process.__doc__ = NeqSys.post_process.__doc__
+
     def pre_process(self, x, params, conds=None):
         return self.neqsystems[0].pre_process(x, params)  # outermost
+
+    pre_process.__doc__ = NeqSys.pre_process.__doc__
