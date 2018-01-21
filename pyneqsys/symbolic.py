@@ -23,27 +23,31 @@ def _map2l(cb, iterable):  # Py2 type of map in Py3
 
 
 class SymbolicSys(NeqSys):
-    """
+    """ Symbolically defined system of non-linear equations.
+
+    This object is analogous to :class:`pyneqsys.NeqSys` but instead of
+    providing a callable, the user provides symbolic expressions.
+
     Parameters
     ----------
     x : iterable of Symbols
-    exprs : iterable of expressions for f
+    exprs : iterable of expressions for ``f``
     params : iterable of Symbols (optional)
         list of symbols appearing in exprs which are parameters
     jac : ImmutableMatrix or bool
-        If True:
-            calculate jacobian from exprs
-        If False:
-            do not compute jacobian (numeric approximation)
+        If ``True``:
+            - Calculate Jacobian from ``exprs``.
+        If ``False``:
+            - Do not compute Jacobian (numeric approximation).
         If ImmutableMatrix:
-            user provided expressions for the jacobian
+            - User provided expressions for the Jacobian.
     backend : str or sym.Backend
         See documentation of `sym.Backend \
 <https://pythonhosted.org/sym/sym.html#sym.backend.Backend>`_.
     module : str
         ``module`` keyword argument passed to ``backend.Lambdify``.
-    \*\*kwargs:
-        See :py:class:`pyneqsys.core.NeqSys`
+    \\*\\*kwargs:
+        See :py:class:`pyneqsys.core.NeqSys`.
 
     Examples
     --------
@@ -60,7 +64,7 @@ class SymbolicSys(NeqSys):
 
     Notes
     -----
-    When using SymPy as backend a limited number of unknowns is supported.
+    When using SymPy as the backend, a limited number of unknowns is supported.
     The reason is that (currently) ``sympy.lambdify`` has an upper limit on
     number of arguments.
 
@@ -82,7 +86,29 @@ class SymbolicSys(NeqSys):
 
     @classmethod
     def from_callback(cls, cb, nx=None, nparams=None, **kwargs):
-        """ Generate a SymbolicSys instance from a callback"""
+        """ Generate a SymbolicSys instance from a callback.
+
+        Parameters
+        ----------
+        cb : callable
+            Should have the signature ``cb(x, p, backend) -> list of exprs``.
+        nx : int
+            Number of unknowns, when not given it is deduced from ``kwargs['names']``.
+        nparams : int
+            Number of parameters, when not given it is deduced from ``kwargs['param_names']``.
+
+        \\*\\*kwargs :
+            Keyword arguments passed on to :class:`SymbolicSys`. See also :class:`pyneqsys.NeqSys`.
+
+        Examples
+        --------
+        >>> symbolicsys = SymbolicSys.from_callback(lambda x, p, be: [
+        ...     x[0]*x[1] - p[0],
+        ...     be.exp(-x[0]) + be.exp(-x[1]) - p[0]**-2
+        ... ], 2, 1)
+        ...
+
+        """
         if kwargs.get('x_by_name', False):
             if 'names' not in kwargs:
                 raise ValueError("Need ``names`` in kwargs.")
@@ -210,11 +236,34 @@ class TransformedSys(SymbolicSys):
         Parameters
         ----------
         cb : callable
+            Should have the signature ``cb(x, p, backend) -> list of exprs``.
+            The callback ``cb`` should return *untransformed* expressions.
         transf_cbs : pair or iterable of pairs of callables
+            Callables for forward- and backward-transformations. Each
+            callable should take a single parameter (expression) and
+            return a single expression.
         nx : int
+            Number of unkowns.
         nparams : int
-        pre_adj : callable
-        \\*\\*kwargs : passed onto TransformedSys
+            Number of parameters.
+        pre_adj : callable, optional
+            To tweak expression prior to transformation. Takes a
+            sinlge argument (expression) and return a single argument
+            rewritten expression.
+        \\*\\*kwargs :
+            Keyword arguments passed on to :class:`TransformedSys`. See also
+            :class:`SymbolicSys` and :class:`pyneqsys.NeqSys`.
+
+        Examples
+        --------
+        >>> import sympy as sp
+        >>> transformed = TransformedSys.from_callback(lambda x, p, be: [
+        ...     x[0]*x[1] - p[0],
+        ...     be.exp(-x[0]) + be.exp(-x[1]) - p[0]**-2
+        ... ], (sp.log, sp.exp), 2, 1)
+        ...
+
+
         """
         be = Backend(kwargs.pop('backend', None))
         x = be.real_symarray('x', nx)
