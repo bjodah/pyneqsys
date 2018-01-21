@@ -17,6 +17,7 @@ prior notice.
 
 from __future__ import (absolute_import, division, print_function)
 
+import math
 import numpy as np
 
 
@@ -84,7 +85,7 @@ class SolverBase(object):
         return -self.cur_j.dot(self.history_f[-1])
 
     def line_search(self, x, dx, mxiter=10, alpha=1e-4):
-        # Goldstein-Armijo linesearch (backtracking)
+        """ Goldstein-Armijo linesearch (backtracking) """
         idx = 0
         lmb = 1.0
         while idx < mxiter:
@@ -151,8 +152,6 @@ class PolakRibiereConjugateGradientSolver(SolverBase):
             dx1 = dx[-2]
             ddx01 = dx0 - dx1
             Bn = dx0.dot(ddx01)/dx1.dot(dx1)
-            # print(Bn_suggest)
-            # Bn = max(0, Bn_suggest)
             self.history_Bn.append(Bn)  # for curiosity
             sn.append(dx[-1] + Bn*sn[-1])
             a = self.line_search(x, sn[-1])
@@ -168,7 +167,6 @@ class DampedGradientDescentSolver(GradientDescentSolver):
         self.exp_damp = exp_damp
 
     def damping(self, iter_idx, mx_iter):
-        import math
         return self.base_damp*math.exp(-iter_idx/mx_iter * self.exp_damp)
 
 
@@ -192,7 +190,3 @@ class AutoDampedGradientDescentSolver(GradientDescentSolver):
             self.cur_damp *= (self.tgt_oscill/oscillatory_metric)**self.tgt_pow
         self.history_damping.append(self.cur_damp)
         return self.cur_damp
-
-
-class QuorumSolver(object):
-    pass

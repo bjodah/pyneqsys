@@ -91,7 +91,7 @@ class _NeqSysBase(object):
         params : array_like
             Parameter values
         vaired_data : array_like
-            Numerical Values Of The varied parameter.
+            Numerical values of the varied parameter.
         varied_idx : int or str
             Index of the varied parameter (indexing starts at 0).
             If ``self.par_by_name`` this should be the name (str) of the varied
