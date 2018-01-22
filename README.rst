@@ -16,6 +16,9 @@ pyneqsys
 .. image:: https://img.shields.io/badge/python-2.7,3.5,3.6-blue.svg
    :target: https://www.python.org/
    :alt: Python version
+.. image:: http://joss.theoj.org/papers/10.21105/joss.00531/status.svg
+   :target: https://doi.org/10.21105/joss.00531
+   :alt: DOI
 .. image:: https://img.shields.io/pypi/l/pyneqsys.svg
    :target: https://github.com/bjodah/pyneqsys/blob/master/LICENSE
    :alt: License file
@@ -181,6 +184,24 @@ notebooks here: (by the courtesy of the people behind mybinder)
 .. image:: http://mybinder.org/badge.svg
    :target: https://mybinder.org/v2/gh/bjodah/pyneqsys/d8775becc6f30b4d3e7920f53d5f318c0672195b?filepath=index.ipynb
    :alt: Binder
+
+Citing
+------
+If you make use of pyneqsys in e.g. academic work you may cite the following peer-reviewed publication:
+
+.. image:: http://joss.theoj.org/papers/10.21105/joss.00531/status.svg
+   :target: https://doi.org/10.21105/joss.00531
+   :alt: Journal of Open Source Software DOI
+
+Depending on what underlying solver you are using you should also cite the appropriate paper
+(you can look at the list of references in the JOSS article). If you need to reference,
+in addition to the paper, a specific point version of pyneqsys (for e.g. reproducibility)
+you can get per-version DOIs from the zendodo archive:
+
+.. image:: https://zenodo.org/badge/43504371.svg
+   :target: https://zenodo.org/badge/latestdoi/43504371
+   :alt: Zenodo DOI
+
 
 Licensing
 ---------
