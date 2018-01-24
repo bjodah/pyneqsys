@@ -1,3 +1,7 @@
+v0.5.4
+======
+- Re-release of v0.5.0 with JOSS-article referenced for citing.
+
 v0.5.3
 ======
 - Re-release of v0.5.0 with better documentation.
