@@ -1,5 +1,5 @@
 build:
-  image: bjodah/bjodahimg16:v1.3
+  image: bjodah/bjodahimg16dev:v1.3
   environment:
     - PYNLEQ2_NLEQ2_ROOT_URL=$$PYNLEQ2_NLEQ2_ROOT_URL
   commands:
