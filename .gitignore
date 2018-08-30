@@ -2,7 +2,7 @@
 **.pyo
 **/__pycache__
 **/.ipynb_checkpoints/
-.cache/
+*cache/
 dist/
 MANIFEST
 build/

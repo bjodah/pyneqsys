@@ -13,7 +13,8 @@ import numpy as np
 from .plotting import plot_series
 
 LRU_CACHE_SIZE = os.environ.get('PYNEQSYS_LRU_CACHE_SIZE', 256)
-if sys.version_info < (3, 5, 1):   
+
+if sys.version_info < (3, 5, 1):
     try:
         from fastcache import clru_cache
     except ImportError:
