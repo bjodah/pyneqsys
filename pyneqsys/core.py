@@ -6,25 +6,31 @@ import inspect
 import math
 import os
 import warnings
+import sys
 
 import numpy as np
 
 from .plotting import plot_series
 
 LRU_CACHE_SIZE = os.environ.get('PYNEQSYS_LRU_CACHE_SIZE', 256)
+if sys.version_info < (3, 5, 1):   
+    try:
+        from fastcache import clru_cache
+    except ImportError:
+        warnings.warn("Could not import 'fastcache' (look in PyPI), "
+                      "solving of ConditionalNeqSys may be slower.")
 
-try:
-    from fastcache import clru_cache
-except ImportError:
-    warnings.warn("Could not import 'fastcache' (look in PyPI), "
-                  "solving of ConditionalNeqSys may be slower.")
+        class _cache_it:
+            def __init__(self, *args, **kwargs):
+                pass
 
-    class clru_cache:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def __call__(self, fun):
-            return fun
+            def __call__(self, fun):
+                return fun
+    else:
+        _cache_it = lambda f: clru_cache(maxsize=LRU_CACHE_SIZE)(f)
+else:
+    from functools import lru_cache
+    _cache_it = lambda f: lru_cache(maxsize=LRU_CACHE_SIZE)(f)
 
 
 def _ensure_3args(func):
@@ -607,7 +613,7 @@ class ConditionalNeqSys(_NeqSysBase):
     def __init__(self, condition_cb_pairs, neqsys_factory, **kwargs):
         super(ConditionalNeqSys, self).__init__(**kwargs)
         self.condition_cb_pairs = condition_cb_pairs
-        self.neqsys_factory = clru_cache(LRU_CACHE_SIZE)(neqsys_factory)
+        self.neqsys_factory = _cache_it(neqsys_factory)
 
     def get_conds(self, x, params, prev_conds=None):
         if prev_conds is None:
