@@ -321,7 +321,7 @@ def linear_exprs(A, x, b=None, rref=False, Matrix=None):
         When ``None``, assume zeros of length ``len(x)``.
     Matrix : class
         When ``rref == True``: A matrix class which supports slicing,
-        and methods ``dot`` and ``rref``. Defaults to ``sympy.Matrix``.
+        and methods ``__mul__`` and ``rref``. Defaults to ``sympy.Matrix``.
     rref : bool
         Calculate the reduced row echelon form of (A | -b).
 
@@ -334,7 +334,9 @@ def linear_exprs(A, x, b=None, rref=False, Matrix=None):
         b = [0]*len(x)
     if rref:
         rA, rb = linear_rref(A, b, Matrix)
-        return [lhs - rhs for lhs, rhs in zip(rA.dot(x), rb)]
+        if Matrix is None:
+            from sympy import Matrix
+        return [lhs - rhs for lhs, rhs in zip(rA * Matrix(len(x), 1, x), rb)]
     else:
         return [sum([x0*x1 for x0, x1 in zip(row, x)]) - v
                 for row, v in zip(A, b)]

@@ -38,11 +38,16 @@ def _ensure_3args(func):
     if func is None:
         return None
     self_arg = 1 if inspect.ismethod(func) else 0
-    if len(inspect.getargspec(func)[0]) == 3 + self_arg:
+    if hasattr(inspect, 'getfullargspec'):
+        args = inspect.getfullargspec(func)[0]
+    else:  # Python 2:
+        args = inspect.getargspec(func)[0]
+
+    if len(args) == 3 + self_arg:
         return func
-    if len(inspect.getargspec(func)[0]) == 2 + self_arg:
+    if len(args) == 2 + self_arg:
         return lambda x, params=(), backend=math: func(x, params)
-    elif len(inspect.getargspec(func)[0]) == 1 + self_arg:
+    elif len(args) == 1 + self_arg:
         return lambda x, params=(), backend=math: func(x)
     else:
         raise ValueError("Incorrect numer of arguments")
