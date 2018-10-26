@@ -15,3 +15,4 @@ deploy
 .ipython/
 .jupyter/*
 !.jupyter/jupyter_notebook_config.py
+example.png
