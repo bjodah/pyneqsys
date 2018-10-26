@@ -42,7 +42,7 @@ def _ensure_3args(func):
         args = inspect.getfullargspec(func)[0]
     else:  # Python 2:
         args = inspect.getargspec(func)[0]
-    
+
     if len(args) == 3 + self_arg:
         return func
     if len(args) == 2 + self_arg:
