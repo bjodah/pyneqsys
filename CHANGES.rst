@@ -1,5 +1,5 @@
-v0.x.y (unreleased)
-===================
+v0.5.5
+======
 - Avoid deprecation warning in latest Py3
 
 v0.5.4
