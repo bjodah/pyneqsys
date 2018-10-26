@@ -24,6 +24,6 @@ PYTHONPATH=$(pwd) PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-re
 ./scripts/render_notebooks.sh
 ./scripts/generate_docs.sh
 
-PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym
-PATH=/opt/miniconda3/bin:$PATH conda update -c defaults --quiet conda-build
-PATH=/opt/miniconda3/bin:$PATH conda-build conda-recipe
+# PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym
+# PATH=/opt/miniconda3/bin:$PATH conda update -c defaults --quiet conda-build
+# PATH=/opt/miniconda3/bin:$PATH conda-build conda-recipe
