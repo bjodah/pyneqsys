@@ -1,3 +1,7 @@
+v0.5.6
+======
+- bugfix for running py2 without fastcache
+
 v0.5.5
 ======
 - Avoid deprecation warning in latest Py3
