@@ -17,6 +17,8 @@ python2 setup.py sdist  # test pip installable sdist (checks MANIFEST.in)
 python2 -m pip install --user -e .[all] pysym pykinsol
 python3 -m pip install --user -e .[all] pysym pykinsol
 PYTHONPATH=$(pwd) PYTHON=python2 ./scripts/run_tests.sh
+python2 -m pip uninstall -y fastcache
+PYTHONPATH=$(pwd) PYTHON=python2 ./scripts/run_tests.sh
 PYTHONPATH=$(pwd) PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
 ! grep "DO-NOT-MERGE!" -R . --exclude ci.sh
