@@ -21,12 +21,8 @@ if sys.version_info < (3, 5, 1):
         warnings.warn("Could not import 'fastcache' (look in PyPI), "
                       "solving of ConditionalNeqSys may be slower.")
 
-        class _cache_it:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def __call__(self, fun):
-                return fun
+        def _cache_it(fun):
+            return fun
     else:
         _cache_it = lambda f: clru_cache(maxsize=LRU_CACHE_SIZE)(f)
 else:
