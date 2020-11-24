@@ -85,7 +85,7 @@ setup_kwargs = dict(
     url=url,
     license=license,
     packages=[pkg_name] + tests,
-    install_requires=['numpy>1.7', 'sym>=0.3.1', 'sympy>=1.3', 'scipy', 'matplotlib', 'jupyter'],
+    install_requires=['numpy>1.7', 'sym>=0.3.1', 'sympy>=1.3', 'scipy', 'matplotlib'],
     extras_require=extras_req
 )
 

@@ -1,3 +1,7 @@
+v0.5.7
+======
+- package "jupyter" was listed as formal dependency, now removed.
+
 v0.5.6
 ======
 - bugfix for running py2 without fastcache

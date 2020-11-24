@@ -57,7 +57,7 @@ class SymbolicSys(NeqSys):
     >>> params = a, b = sp.symbols('a b')
     >>> neqsys = SymbolicSys(x, [a*(1 - x0), b*(x1 - x0**2)], params)
     >>> xout, sol = neqsys.solve('scipy', [-10, -5], [1, 10])
-    >>> print(xout)
+    >>> print(xout)  # doctest: +NORMALIZE_WHITESPACE
     [ 1.  1.]
     >>> print(neqsys.get_jac()[0, 0])
     -a

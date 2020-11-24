@@ -289,7 +289,7 @@ class NeqSys(_NeqSysBase):
     ...                                     (x[1] - x[0])**p[0]/2 + x[1]])
     >>> x, sol = neqsys.solve([1, 0], [3])
     >>> assert sol['success']
-    >>> print(x)
+    >>> print(x)  # doctest: +NORMALIZE_WHITESPACE
     [ 0.8411639  0.1588361]
 
     See Also
@@ -367,7 +367,7 @@ class NeqSys(_NeqSysBase):
         ... ])
         >>> x, sol = neqsys.solve([1, 0], [3], solver=(None, 'mpmath'))
         >>> assert sol['success']
-        >>> print(x)
+        >>> print(x)  # doctest: +NORMALIZE_WHITESPACE
         [0.841163901914009663684741869855]
         [0.158836098085990336315258130144]
 
@@ -595,19 +595,19 @@ class ConditionalNeqSys(_NeqSysBase):
     ...                             factory)
     >>> x, sol = cneqsys.solve([0], [pi, 3])
     >>> assert sol['success']
-    >>> print(x)
+    >>> print(x)  # doctest: +NORMALIZE_WHITESPACE
     [ 0.]
     >>> x, sol = cneqsys.solve([-1.4], [pi, 3])
     >>> assert sol['success']
-    >>> print(x)
+    >>> print(x)  # doctest: +NORMALIZE_WHITESPACE
     [-1.]
     >>> x, sol = cneqsys.solve([2], [pi, 3])
     >>> assert sol['success']
-    >>> print(x)
+    >>> print(x)  # doctest: +NORMALIZE_WHITESPACE
     [ 3.]
     >>> x, sol = cneqsys.solve([7], [pi, 3])
     >>> assert sol['success']
-    >>> print(x)
+    >>> print(x)  # doctest: +NORMALIZE_WHITESPACE
     [ 3.]
 
     """
@@ -712,7 +712,7 @@ class ChainedNeqSys(_NeqSysBase):
     >>> chained = ChainedNeqSys([neqsys_log, neqsys_lin])
     >>> x, info = chained.solve([1, 1], [4])
     >>> assert info['success']
-    >>> print(x)
+    >>> print(x)  # doctest: +NORMALIZE_WHITESPACE
     [ 2.]
     >>> print(info['intermediate_info'][0]['nfev'],
     ...       info['intermediate_info'][1]['nfev'])  # doctest: +SKIP
