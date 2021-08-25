@@ -2,7 +2,7 @@ pipeline:
   build:
     image: bjodah/bjodahimg20dot:21.7.m
     environment:
-      - PYNLEQ2_NLEQ2_ROOT_URL:
+      PYNLEQ2_NLEQ2_ROOT_URL:
           from_secret: nleq2_root_url
       commands:
         - (cd /; python3 -m pip install --user pynleq2)
