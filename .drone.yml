@@ -9,9 +9,9 @@ steps:
   environment:
     PYNLEQ2_NLEQ2_ROOT_URL:
       from_secret: nleq2_root_url
-    - CC=gcc-11
-    - CXX=g++-11
-    - FC=gfortran-11
+    CC: gcc-11
+    CXX: g++-11
+    FC: gfortran-11
   commands:
     - (cd /; python3 -m pip install --user pynleq2)
     - export PYNLEQ2_NLEQ2_ROOT_URL=""
