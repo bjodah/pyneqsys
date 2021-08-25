@@ -1,8 +1,8 @@
 #!/bin/bash -xeu
 PKG_NAME=${1:-${CI_REPO##*/}}
-if [[ "$CI_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then
-    eval export ${PKG_NAME^^}_RELEASE_VERSION=\$CI_BRANCH
-    echo ${CI_BRANCH} | tail -c +2 > __conda_version__.txt
+if [[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then
+    eval export ${PKG_NAME^^}_RELEASE_VERSION=\$DRONE_BRANCH
+    echo ${DRONE_BRANCH} | tail -c +2 > __conda_version__.txt
 fi
 python2 -m pip install --user --upgrade pip
 python3 -m pip install --user --upgrade pip
