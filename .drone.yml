@@ -12,6 +12,9 @@ steps:
     CC: gcc-11
     CXX: g++-11
     FC: gfortran-11
+    CPATH: /opt/sundials-5.7.0-release/include
+    LIBRARY_PATH: /opt/sundials-5.7.0-release/lib
+    LD_LIBRARY_PATH: /opt/sundials-5.7.0-release/lib
   commands:
     - (cd /; python3 -m pip install --user pynleq2)
     - export PYNLEQ2_NLEQ2_ROOT_URL=""
