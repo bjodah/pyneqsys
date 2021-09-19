@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
 
 import pytest
 
@@ -8,11 +8,10 @@ def _test(**kwargs):
     from ..symbolic import SymbolicSys
     from .test_core import f
 
-    ss = SymbolicSys.from_callback(
-        f, 2, 1, **kwargs)
+    ss = SymbolicSys.from_callback(f, 2, 1, **kwargs)
 
-    x, sol = ss.solve([1, 0], [3], solver='scipy')
-    assert sol['success']
+    x, sol = ss.solve([1, 0], [3], solver="scipy")
+    assert sol["success"]
     assert abs(x[0] - 0.8411639) < 2e-7
     assert abs(x[1] - 0.1588361) < 2e-7
 
@@ -25,7 +24,7 @@ except ImportError:
 
 @pytest.mark.skipif(pysym is None, reason="pysym missing")
 def test_pysym_SymbolicSys_from_callback():
-    _test(backend='pysym')
+    _test(backend="pysym")
 
 
 try:
@@ -36,7 +35,7 @@ except ImportError:
 
 @pytest.mark.skipif(symcxx is None, reason="symcxx missing")
 def test_symcxx_SymbolicSys_from_callback():
-    _test(backend='symcxx')
+    _test(backend="symcxx")
 
 
 try:
@@ -47,4 +46,4 @@ except ImportError:
 
 @pytest.mark.skipif(symengine is None, reason="symengine missing")
 def test_symengine_SymbolicSys_from_callback():
-    _test(backend='symengine')
+    _test(backend="symengine")

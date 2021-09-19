@@ -15,18 +15,18 @@ i.e. they may be renamed, change behavior and/or signature without any
 prior notice.
 """
 
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
 
 import math
+
 import numpy as np
 
 
 def rms(x):
-    return np.sqrt(np.mean(np.asarray(x)**2))
+    return np.sqrt(np.mean(np.asarray(x) ** 2))
 
 
 class SolverBase(object):
-
     def alloc(self):
         self.nfev = 0
         self.njev = 0
@@ -70,8 +70,14 @@ class SolverBase(object):
                 if np.all(np.abs(f) < ftol):
                     success = True
                     break
-            return {'x': cur_x, 'success': success, 'nit': iter_idx,
-                    'nfev': self.nfev, 'njev': self.njev}
+            return {
+                "x": cur_x,
+                "success": success,
+                "nit": iter_idx,
+                "nfev": self.nfev,
+                "njev": self.njev,
+            }
+
         self.alloc()
         return cb
 
@@ -85,22 +91,22 @@ class SolverBase(object):
         return -self.cur_j.dot(self.history_f[-1])
 
     def line_search(self, x, dx, mxiter=10, alpha=1e-4):
-        """ Goldstein-Armijo linesearch (backtracking) """
+        """Goldstein-Armijo linesearch (backtracking)"""
         idx = 0
         lmb = 1.0
         while idx < mxiter:
-            f = self.f(x + lmb*dx)
+            f = self.f(x + lmb * dx)
             rms_f = rms(f)
-            rms_cmp = rms(self.history_f[-1] + alpha*self.cur_j.dot(lmb*dx))
+            rms_cmp = rms(self.history_f[-1] + alpha * self.cur_j.dot(lmb * dx))
             if rms_f <= rms_cmp:
-                return lmb*dx
+                return lmb * dx
             lmb /= 2
             idx += 1
-        return lmb*dx
+        return lmb * dx
 
 
 class GradientDescentSolver(SolverBase):
-    """ Example of a custom solver
+    """Example of a custom solver
 
     Parameters
     ----------
@@ -125,13 +131,11 @@ class GradientDescentSolver(SolverBase):
 
 
 class LineSearchingGradientDescentSolver(SolverBase):
-
     def step(self, x, iter_idx, maxiter):
         return self.line_search(x, self._gd_step(x))
 
 
 class PolakRibiereConjugateGradientSolver(SolverBase):
-
     def __init__(self, reset_freq=10):
         self.reset_freq = reset_freq
 
@@ -146,33 +150,31 @@ class PolakRibiereConjugateGradientSolver(SolverBase):
         sn = self.history_sn
         if iter_idx in (0, 1) or iter_idx % self.reset_freq == 0:
             dxn = self.line_search(x, self._gd_step(x))
-            sn.append(x*0)
+            sn.append(x * 0)
         else:
             dx0 = dx[-1]
             dx1 = dx[-2]
             ddx01 = dx0 - dx1
-            Bn = dx0.dot(ddx01)/dx1.dot(dx1)
+            Bn = dx0.dot(ddx01) / dx1.dot(dx1)
             self.history_Bn.append(Bn)  # for curiosity
-            sn.append(dx[-1] + Bn*sn[-1])
+            sn.append(dx[-1] + Bn * sn[-1])
             a = self.line_search(x, sn[-1])
             self.history_a.append(a)  # for curiosity
-            dxn = a*sn[-1]
+            dxn = a * sn[-1]
         return dxn
 
 
 class DampedGradientDescentSolver(GradientDescentSolver):
-
-    def __init__(self, base_damp=.5, exp_damp=.5):
+    def __init__(self, base_damp=0.5, exp_damp=0.5):
         self.base_damp = base_damp
         self.exp_damp = exp_damp
 
     def damping(self, iter_idx, mx_iter):
-        return self.base_damp*math.exp(-iter_idx/mx_iter * self.exp_damp)
+        return self.base_damp * math.exp(-iter_idx / mx_iter * self.exp_damp)
 
 
 class AutoDampedGradientDescentSolver(GradientDescentSolver):
-
-    def __init__(self, tgt_oscill=.1, start_damp=.1, nhistory=4, tgt_pow=.3):
+    def __init__(self, tgt_oscill=0.1, start_damp=0.1, nhistory=4, tgt_pow=0.3):
         self.tgt_oscill = tgt_oscill
         self.cur_damp = start_damp
         self.nhistory = nhistory
@@ -181,12 +183,12 @@ class AutoDampedGradientDescentSolver(GradientDescentSolver):
 
     def damping(self, iter_idx, mx_iter):
         if iter_idx >= self.nhistory:
-            hist = self.history_rms_f[-self.nhistory:]
+            hist = self.history_rms_f[-self.nhistory :]
             avg = np.mean(hist)
             even = hist[::2]
             odd = hist[1::2]
-            signed_metric = sum(even-avg) - sum(odd-avg)
-            oscillatory_metric = abs(signed_metric)/(avg * self.nhistory)
-            self.cur_damp *= (self.tgt_oscill/oscillatory_metric)**self.tgt_pow
+            signed_metric = sum(even - avg) - sum(odd - avg)
+            oscillatory_metric = abs(signed_metric) / (avg * self.nhistory)
+            self.cur_damp *= (self.tgt_oscill / oscillatory_metric) ** self.tgt_pow
         self.history_damping.append(self.cur_damp)
         return self.cur_damp

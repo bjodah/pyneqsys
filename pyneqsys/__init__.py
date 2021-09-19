@@ -21,4 +21,4 @@ handling e.g. conditional equations in a system.
 from __future__ import absolute_import
 
 from ._release import __version__
-from .core import NeqSys, ConditionalNeqSys, ChainedNeqSys
+from .core import ChainedNeqSys, ConditionalNeqSys, NeqSys
