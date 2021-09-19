@@ -5,7 +5,7 @@ type: docker
 
 steps:
 - name: build
-  image: bjodah/bjodahimg20dot:21.7.m
+  image: bjodah/bjodahimg20dot:21.8.a
   environment:
     PYNLEQ2_NLEQ2_ROOT_URL:
       from_secret: nleq2_root_url
