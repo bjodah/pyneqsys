@@ -77,16 +77,15 @@ class SymbolicSys(NeqSys):
         self._jac = jac
         self.be = Backend(backend)
         self.nf, self.nx = len(exprs), len(x)  # needed by get_*_cb
-        self.band = kwargs.get('band', None)  # needed by get_*_cb
-        self.module = kwargs.pop('module', 'numpy')
-        super(SymbolicSys, self).__init__(self.nf, self.nx,
-                                          self._get_f_cb(),
-                                          self._get_j_cb(),
-                                          **kwargs)
+        self.band = kwargs.get("band", None)  # needed by get_*_cb
+        self.module = kwargs.pop("module", "numpy")
+        super(SymbolicSys, self).__init__(
+            self.nf, self.nx, self._get_f_cb(), self._get_j_cb(), **kwargs
+        )
 
     @classmethod
     def from_callback(cls, cb, nx=None, nparams=None, **kwargs):
-        """ Generate a SymbolicSys instance from a callback.
+        """Generate a SymbolicSys instance from a callback.
 
         Parameters
         ----------
@@ -109,31 +108,39 @@ class SymbolicSys(NeqSys):
         ...
 
         """
-        if kwargs.get('x_by_name', False):
-            if 'names' not in kwargs:
+        if kwargs.get("x_by_name", False):
+            if "names" not in kwargs:
                 raise ValueError("Need ``names`` in kwargs.")
             if nx is None:
-                nx = len(kwargs['names'])
-            elif nx != len(kwargs['names']):
+                nx = len(kwargs["names"])
+            elif nx != len(kwargs["names"]):
                 raise ValueError("Inconsistency between nx and length of ``names``.")
-        if kwargs.get('par_by_name', False):
-            if 'param_names' not in kwargs:
+        if kwargs.get("par_by_name", False):
+            if "param_names" not in kwargs:
                 raise ValueError("Need ``param_names`` in kwargs.")
             if nparams is None:
-                nparams = len(kwargs['param_names'])
-            elif nparams != len(kwargs['param_names']):
-                raise ValueError("Inconsistency between ``nparam`` and length of ``param_names``.")
+                nparams = len(kwargs["param_names"])
+            elif nparams != len(kwargs["param_names"]):
+                raise ValueError(
+                    "Inconsistency between ``nparam`` and length of ``param_names``."
+                )
 
         if nparams is None:
             nparams = 0
 
         if nx is None:
-            raise ValueError("Need ``nx`` of ``names`` together with ``x_by_name==True``.")
-        be = Backend(kwargs.pop('backend', None))
-        x = be.real_symarray('x', nx)
-        p = be.real_symarray('p', nparams)
-        _x = dict(zip(kwargs['names'], x)) if kwargs.get('x_by_name', False) else x
-        _p = dict(zip(kwargs['param_names'], p)) if kwargs.get('par_by_name', False) else p
+            raise ValueError(
+                "Need ``nx`` of ``names`` together with ``x_by_name==True``."
+            )
+        be = Backend(kwargs.pop("backend", None))
+        x = be.real_symarray("x", nx)
+        p = be.real_symarray("p", nparams)
+        _x = dict(zip(kwargs["names"], x)) if kwargs.get("x_by_name", False) else x
+        _p = (
+            dict(zip(kwargs["param_names"], p))
+            if kwargs.get("par_by_name", False)
+            else p
+        )
         try:
             exprs = cb(_x, _p, be)
         except TypeError:
@@ -141,7 +148,7 @@ class SymbolicSys(NeqSys):
         return cls(x, exprs, p, backend=be, **kwargs)
 
     def get_jac(self):
-        """ Return the jacobian of the expressions """
+        """Return the jacobian of the expressions"""
         if self._jac is True:
             if self.band is None:
                 f = self.be.Matrix(self.nf, 1, self.exprs)
@@ -149,8 +156,7 @@ class SymbolicSys(NeqSys):
                 return f.jacobian(_x)
             else:
                 # Banded
-                return self.be.Matrix(banded_jacobian(
-                    self.exprs, self.x, *self.band))
+                return self.be.Matrix(banded_jacobian(self.exprs, self.x, *self.band))
         elif self._jac is False:
             return False
         else:
@@ -158,7 +164,7 @@ class SymbolicSys(NeqSys):
 
     def _get_f_cb(self):
         args = list(chain(self.x, self.params))
-        kw = dict(module=self.module, dtype=object if self.module == 'mpmath' else None)
+        kw = dict(module=self.module, dtype=object if self.module == "mpmath" else None)
         try:
             cb = self.be.Lambdify(args, self.exprs, **kw)
         except TypeError:
@@ -166,11 +172,12 @@ class SymbolicSys(NeqSys):
 
         def f(x, params):
             return cb(np.concatenate((x, params), axis=-1))
+
         return f
 
     def _get_j_cb(self):
         args = list(chain(self.x, self.params))
-        kw = dict(module=self.module, dtype=object if self.module == 'mpmath' else None)
+        kw = dict(module=self.module, dtype=object if self.module == "mpmath" else None)
         try:
             cb = self.be.Lambdify(args, self.get_jac(), **kw)
         except TypeError:
@@ -178,25 +185,32 @@ class SymbolicSys(NeqSys):
 
         def j(x, params):
             return cb(np.concatenate((x, params), axis=-1))
+
         return j
 
     _use_symbol_latex_names = True
 
     def _repr_latex_(self):  # pretty printing in Jupyter notebook
         from ._sympy import NeqSysTexPrinter
+
         if self.latex_names and (self.latex_param_names if len(self.params) else True):
-            pretty = {s: n for s, n in chain(
-                zip(self.x, self.latex_names) if self._use_symbol_latex_names else [],
-                zip(self.params, self.latex_param_names)
-            )}
+            pretty = {
+                s: n
+                for s, n in chain(
+                    zip(self.x, self.latex_names)
+                    if self._use_symbol_latex_names
+                    else [],
+                    zip(self.params, self.latex_param_names),
+                )
+            }
         else:
             pretty = {}
 
-        return '$%s$' % NeqSysTexPrinter(dict(symbol_names=pretty)).doprint(self.exprs)
+        return "$%s$" % NeqSysTexPrinter(dict(symbol_names=pretty)).doprint(self.exprs)
 
 
 class TransformedSys(SymbolicSys):
-    """ A system which transforms the equations and variables internally
+    """A system which transforms the equations and variables internally
 
     Can be used to reformulate a problem in a numerically more stable form.
 
@@ -214,6 +228,7 @@ class TransformedSys(SymbolicSys):
         Keyword arguments passed onto :class:`SymbolicSys`.
 
     """
+
     _use_symbol_latex_names = False  # symbols have been transformed
 
     def __init__(self, x, exprs, transf, params=(), post_adj=None, **kwargs):
@@ -221,17 +236,19 @@ class TransformedSys(SymbolicSys):
         check_transforms(self.fw, self.bw, x)
         exprs = [e.subs(zip(x, self.fw)) for e in exprs]
         super(TransformedSys, self).__init__(
-            x, _map2l(post_adj, exprs), params,
+            x,
+            _map2l(post_adj, exprs),
+            params,
             pre_processors=[lambda xarr, params: (self.bw_cb(xarr), params)],
             post_processors=[lambda xarr, params: (self.fw_cb(xarr), params)],
-            **kwargs)
+            **kwargs
+        )
         self.fw_cb = self.be.Lambdify(x, self.fw)
         self.bw_cb = self.be.Lambdify(x, self.bw)
 
     @classmethod
-    def from_callback(cls, cb, transf_cbs, nx, nparams=0, pre_adj=None,
-                      **kwargs):
-        """ Generate a TransformedSys instance from a callback
+    def from_callback(cls, cb, transf_cbs, nx, nparams=0, pre_adj=None, **kwargs):
+        """Generate a TransformedSys instance from a callback
 
         Parameters
         ----------
@@ -265,13 +282,14 @@ class TransformedSys(SymbolicSys):
 
 
         """
-        be = Backend(kwargs.pop('backend', None))
-        x = be.real_symarray('x', nx)
-        p = be.real_symarray('p', nparams)
+        be = Backend(kwargs.pop("backend", None))
+        x = be.real_symarray("x", nx)
+        p = be.real_symarray("p", nparams)
         try:
-            transf = [(transf_cbs[idx][0](xi),
-                       transf_cbs[idx][1](xi))
-                      for idx, xi in enumerate(x)]
+            transf = [
+                (transf_cbs[idx][0](xi), transf_cbs[idx][1](xi))
+                for idx, xi in enumerate(x)
+            ]
         except TypeError:
             transf = zip(_map2(transf_cbs[0], x), _map2(transf_cbs[1], x))
         try:
@@ -282,7 +300,7 @@ class TransformedSys(SymbolicSys):
 
 
 def linear_rref(A, b, Matrix=None, S=None):
-    """ Transform a linear system to reduced row-echelon form
+    """Transform a linear system to reduced row-echelon form
 
     Transforms both the matrix and right-hand side of a linear
     system of equations to reduced row echelon form
@@ -310,7 +328,7 @@ def linear_rref(A, b, Matrix=None, S=None):
 
 
 def linear_exprs(A, x, b=None, rref=False, Matrix=None):
-    """ Returns Ax - b
+    """Returns Ax - b
 
     Parameters
     ----------
@@ -331,12 +349,11 @@ def linear_exprs(A, x, b=None, rref=False, Matrix=None):
 
     """
     if b is None:
-        b = [0]*len(x)
+        b = [0] * len(x)
     if rref:
         rA, rb = linear_rref(A, b, Matrix)
         if Matrix is None:
             from sympy import Matrix
         return [lhs - rhs for lhs, rhs in zip(rA * Matrix(len(x), 1, x), rb)]
     else:
-        return [sum([x0*x1 for x0, x1 in zip(row, x)]) - v
-                for row, v in zip(A, b)]
+        return [sum([x0 * x1 for x0, x1 in zip(row, x)]) - v for row, v in zip(A, b)]
