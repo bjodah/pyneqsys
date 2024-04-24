@@ -1,0 +1,15 @@
+when:
+  - event: [push]
+
+steps:
+  - name: build
+    image: bjodah/bjodahimg20dot:21.8.a
+    environment:
+      CC: gcc-11
+      CXX: g++-11
+      FC: gfortran-11
+    commands:
+      #- export PYNLEQ2_NLEQ2_ROOT_URL=""
+      #- (cd /; python3 -m pip install --user pynleq2)
+      - ./scripts/ci.sh pyneqsys
+      - ./scripts/prepare_deploy.sh
