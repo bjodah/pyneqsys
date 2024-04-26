@@ -1,11 +1,15 @@
-#!/bin/bash -xeu
-PKG_NAME=${1:-${CI_REPO##*/}}
+#!/bin/bash
+set -xeuo pipefail
+PKG_NAME=${1:-${CI_REPO_NAME##*/}}
 if [[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then
     eval export ${PKG_NAME^^}_RELEASE_VERSION=\$DRONE_BRANCH
     echo ${DRONE_BRANCH} | tail -c +2 > __conda_version__.txt
 fi
-python3 -m pip install --user --upgrade pip
-python3 -m pip install --user --upgrade pip
+
+export CPATH=/opt/sundials-5.7.0-release/include
+export LIBRARY_PATH=/opt/sundials-5.7.0-release/lib
+export LD_LIBRARY_PATH=/opt/sundials-5.7.0-release/lib
+#source /opt-3/cpython-v3.11-apt-deb/bin/activate
 
 git archive -o /tmp/$PKG_NAME.zip HEAD  # test pip installable zip (symlinks break)
 python3 -m pip install /tmp/$PKG_NAME.zip
@@ -16,9 +20,6 @@ python3 setup.py sdist  # test pip installable sdist (checks MANIFEST.in)
 
 python3 -m pip install --user -e .[all] pysym pykinsol
 python3 -m pip install --user -e .[all] pysym pykinsol
-PYTHONPATH=$(pwd) PYTHON=python3 ./scripts/run_tests.sh
-python3 -m pip uninstall -y fastcache
-PYTHONPATH=$(pwd) PYTHON=python3 ./scripts/run_tests.sh
 PYTHONPATH=$(pwd) PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
 ! grep "DO-NOT-MERGE!" -R . --exclude ci.sh
