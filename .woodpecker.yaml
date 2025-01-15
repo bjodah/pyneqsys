@@ -3,11 +3,11 @@ when:
 
 steps:
   - name: build
-    image: bjodah/bjodahimg20dot:21.8.a
+    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:24
     environment:
-      CC: gcc-11
-      CXX: g++-11
-      FC: gfortran-11
+      CC: gcc
+      CXX: g++
+      FC: gfortran
     commands:
       #- export PYNLEQ2_NLEQ2_ROOT_URL=""
       #- (cd /; python3 -m pip install --user pynleq2)

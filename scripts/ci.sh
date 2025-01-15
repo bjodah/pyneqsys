@@ -6,10 +6,15 @@ if [[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then
     echo ${DRONE_BRANCH} | tail -c +2 > __conda_version__.txt
 fi
 
-export CPATH=/opt/sundials-5.7.0-release/include
-export LIBRARY_PATH=/opt/sundials-5.7.0-release/lib
-export LD_LIBRARY_PATH=/opt/sundials-5.7.0-release/lib
-#source /opt-3/cpython-v3.11-apt-deb/bin/activate
+SUNDIALS_ROOT=$(compgen -G "/opt-3/sundials-6.*-release")
+if [ ! -e $SUNDIALS_ROOT/include/sundials/sundials_config.h ]; then
+    >&2 echo "No functional sundials install at SUNDIALS_ROOT?: $SUNDIALS_ROOT"
+    exit 1
+fi
+export CPATH=$SUNDIALS_ROOT/include
+export LIBRARY_PATH=$SUNDIALS_ROOT/lib
+export LD_LIBRARY_PATH=$SUNDIALS_ROOT/lib
+source /opt-3/cpython-v3.*-apt-deb/bin/activate
 
 git archive -o /tmp/$PKG_NAME.zip HEAD  # test pip installable zip (symlinks break)
 python3 -m pip install /tmp/$PKG_NAME.zip
