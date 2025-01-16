@@ -17,8 +17,11 @@ export LD_LIBRARY_PATH=$SUNDIALS_ROOT/lib
 source /opt-3/cpython-v3.*-apt-deb/bin/activate
 
 git archive -o /tmp/$PKG_NAME.zip HEAD  # test pip installable zip (symlinks break)
-for pypkg in pycompilation pycodeexport pykinsol sym symcxx pysym; do
+for pypkg in pycompilation pycodeexport pykinsol sym symcxx pysym levmar; do
     case $pypkg in
+        levmar)
+            pypkg_fqn="git+https://github.com/bjodah/levmar#egg=levmar"             
+            ;;
         symcxx)
             pypkg_fqn="git+https://github.com/bjodah/symcxx#egg=symcxx"
             ;;
@@ -51,10 +54,6 @@ python3 setup.py sdist  # test pip installable sdist (checks MANIFEST.in)
 (cd dist/; python3 -m pip install $PKG_NAME-$(python3 ../setup.py --version).tar.gz)
 (cd /; python3 -m pytest --pyargs $PKG_NAME)
 
-python3 -m pip install \
-        pykinsol \
-        "git+https://github.com/bjodah/pysym#egg=pysym" \
-        "git+https://github.com/bjodah/levmar#egg=levmar" 
 python3 -m pip install .[all]
 PYTHONPATH=$(pwd) PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
