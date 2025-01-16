@@ -17,6 +17,34 @@ export LD_LIBRARY_PATH=$SUNDIALS_ROOT/lib
 source /opt-3/cpython-v3.*-apt-deb/bin/activate
 
 git archive -o /tmp/$PKG_NAME.zip HEAD  # test pip installable zip (symlinks break)
+for pypkg in pycompilation pycodeexport pykinsol sym symcxx pysym; do
+    case $pypkg in
+        symcxx)
+            pypkg_fqn="git+https://github.com/bjodah/symcxx#egg=symcxx"
+            ;;
+        pysym)
+            pypkg_fqn="git+https://github.com/bjodah/pysym#egg=pysym"
+            ;;
+        sym)
+            pypkg_fqn="git+https://github.com/bjodah/sym@jun21#egg=sym"
+            ;;
+        pycompilation)
+            pypkg_fqn="git+https://github.com/bjodah/pycompilation@use-importlib-rather-than-imp#egg=pycompilation"
+            ;;
+        pycodeexport)
+            pypkg_fqn="git+https://github.com/bjodah/pycodeexport@qulify-extension-name-and-new-ci#egg=pycodeexport"
+            ;;
+        pykinsol)
+            pypkg_fqn="git+https://github.com/bjodah/pykinsol@jan25#egg=pykinsol"
+            ;;
+        *)
+            pypkg_fqn=$pypkg
+            ;;
+    esac
+    python -m pip install ${INSTALL_PIP_FLAGS:-} $pypkg_fqn
+    python -m pytest --pyargs $pypkg
+done
+
 python3 -m pip install /tmp/$PKG_NAME.zip
 
 python3 setup.py sdist  # test pip installable sdist (checks MANIFEST.in)
