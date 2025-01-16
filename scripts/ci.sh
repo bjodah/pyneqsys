@@ -23,8 +23,11 @@ python3 setup.py sdist  # test pip installable sdist (checks MANIFEST.in)
 (cd dist/; python3 -m pip install $PKG_NAME-$(python3 ../setup.py --version).tar.gz)
 (cd /; python3 -m pytest --pyargs $PKG_NAME)
 
-python3 -m pip install pykinsol "git+https://github.com/bjodah/pysym#egg=pysym"
-python3 -m pip install .[all] pysym pykinsol
+python3 -m pip install \
+        pykinsol \
+        "git+https://github.com/bjodah/pysym#egg=pysym" \
+        "git+https://github.com/bjodah/levmar#egg=levmar" 
+python3 -m pip install .[all]
 PYTHONPATH=$(pwd) PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
 ! grep "DO-NOT-MERGE!" -R . --exclude ci.sh
