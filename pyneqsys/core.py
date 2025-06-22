@@ -512,10 +512,12 @@ class NeqSys(_NeqSysBase):
 
         def _f(x, fout):
             res = self.f_cb(x, self.internal_params)
+            assert res.shape == fout.shape
             fout[:] = res
 
         def _j(x, Jout, fx):
             res = self.j_cb(x, self.internal_params)
+            assert Jout.shape == res.shape
             Jout[:, :] = res[:, :]
 
         return pykinsol.solve(_f, _j, intern_x0, **kwargs)
