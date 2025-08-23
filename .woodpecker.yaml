@@ -3,7 +3,7 @@ when:
 
 steps:
   - name: build
-    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:24
+    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:34
     environment:
       CC: gcc
       CXX: g++
