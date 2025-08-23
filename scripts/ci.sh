@@ -32,10 +32,10 @@ for pypkg in pycompilation pycodeexport pykinsol sym symcxx pysym levmar; do
             pypkg_fqn="git+https://github.com/bjodah/sym@jun21#egg=sym"
             ;;
         pycompilation)
-            pypkg_fqn="git+https://github.com/bjodah/pycompilation@use-importlib-rather-than-imp#egg=pycompilation"
+            pypkg_fqn="git+https://github.com/bjodah/pycompilation@master#egg=pycompilation"
             ;;
         pycodeexport)
-            pypkg_fqn="git+https://github.com/bjodah/pycodeexport@qulify-extension-name-and-new-ci#egg=pycodeexport"
+            pypkg_fqn="git+https://github.com/bjodah/pycodeexport@master#egg=pycodeexport"
             ;;
         pykinsol)
             pypkg_fqn="git+https://github.com/bjodah/pykinsol@jan25#egg=pykinsol"
