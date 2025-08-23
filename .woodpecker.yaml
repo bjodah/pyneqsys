@@ -1,9 +1,12 @@
+variables:
+  - &ci_image 'cont-reg.bjodah.se:443/bjodah/triceratops-4:25'
+
 when:
   - event: [push]
 
 steps:
   - name: build
-    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:34
+    image: *ci_image
     environment:
       CC: gcc
       CXX: g++
