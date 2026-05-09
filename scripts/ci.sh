@@ -1,9 +1,9 @@
 #!/bin/bash
 set -xeuo pipefail
 PKG_NAME=${1:-${CI_REPO_NAME##*/}}
-if [[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then
-    eval export ${PKG_NAME^^}_RELEASE_VERSION=\$DRONE_BRANCH
-    echo ${DRONE_BRANCH} | tail -c +2 > __conda_version__.txt
+if [[ "$CI_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then
+    eval export ${PKG_NAME^^}_RELEASE_VERSION=\$CI_BRANCH
+    echo ${CI_BRANCH} | tail -c +2 > __conda_version__.txt
 fi
 
 SUNDIALS_ROOT=$(compgen -G "/opt-3/sundials-6.*-release")
